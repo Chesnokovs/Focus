@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Focus App — Design Spec for Engineering</title>
+<meta name="viewport" content="width=1320" />
+<style>
+  body { margin: 0; background: #0E141C; font-family: 'Inter', system-ui, sans-serif; color: #DBE3EC; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 5px; }
+  input::placeholder, textarea::placeholder { color: #7B8A9D; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0E141C">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0E141C"/>
+    <rect x="320" y="240" width="560" height="320" rx="18" fill="#DC2626"/>
+    <circle cx="430" cy="470" r="46" fill="none" stroke="#FFFFFF" stroke-width="6" opacity="0.3"/>
+    <circle cx="430" cy="470" r="46" fill="none" stroke="#FFFFFF" stroke-width="6"
+      stroke-dasharray="289" stroke-dashoffset="80" stroke-linecap="round"
+      transform="rotate(-90 430 470)"/>
+    <text x="510" y="490" font-family="monospace" font-size="64" font-weight="700" fill="#FFFFFF">23:43</text>
+    <text x="360" y="320" font-family="sans-serif" font-size="22" font-weight="700" fill="#FFFFFF" letter-spacing="3">WORK</text>
+    <text x="360" y="380" font-family="sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">Focus App Spec</text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="components/Icon.jsx"></script>
+<script type="text/babel" src="spec/tokens.jsx"></script>
+<script type="text/babel" src="spec/specPrimitives.jsx"></script>
+<script type="text/babel" src="spec/FocusWindowSpec.jsx"></script>
+<script type="text/babel" src="spec/TaskCardSpec.jsx"></script>
+<script type="text/babel" src="spec/MainWindowSpec.jsx"></script>
+
+<script type="text/babel">
+const Page = () => (
+  <div style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 40px 80px' }}>
+    {/* Cover */}
+    <div style={{
+      padding: '40px 0 60px',
+      borderBottom: `2px solid ${TOKENS.S_BORDER}`,
+      marginBottom: 60,
+    }}>
+      <div style={{
+        fontFamily: TYPOGRAPHY.fontMono,
+        fontSize: 12, color: TOKENS.S_ACCENT, fontWeight: 600, letterSpacing: 1.4,
+        textTransform: 'uppercase', marginBottom: 12,
+      }}>Design Spec · v1.0 · for engineering handoff</div>
+      <div style={{
+        fontSize: 56, fontWeight: 700, letterSpacing: -2, lineHeight: 1, marginBottom: 16,
+      }}>Focus App</div>
+      <div style={{ fontSize: 16, color: TOKENS.S_TEXT_MUTED, maxWidth: 720, lineHeight: 1.5 }}>
+        Gunmetal direction · final tokens, type, layouts, and 13 component states.
+        All decisions are pinned to the §-numbered sections of <code style={{
+          fontFamily: TYPOGRAPHY.fontMono, color: TOKENS.S_FG,
+          background: TOKENS.S_SURFACE, padding: '1px 6px', borderRadius: 3,
+        }}>DESIGN_BRIEF.md</code>.
+      </div>
+    </div>
+
+    {/* §1 Palette */}
+    <SectionTitle num="§1" title="Palette · token map" subtitle="All token names match brief §5. Hex values are the Gunmetal direction. Drop straight into Python." />
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16,
+    }}>
+      <SwatchCard token="S_BG" hex={TOKENS.S_BG} role="App background / chrome bar" onDark />
+      <SwatchCard token="S_BG_DEEP" hex={TOKENS.S_BG_DEEP} role="Deeper bg — title bar, footer (NEW)" onDark />
+      <SwatchCard token="S_SURFACE" hex={TOKENS.S_SURFACE} role="Cards, inputs, settings pills" onDark />
+      <SwatchCard token="S_ACTIVE" hex={TOKENS.S_ACTIVE} role="Active card base. Gradient overlay rendered on Canvas." onDark />
+      <SwatchCard token="S_BORDER" hex={TOKENS.S_BORDER} role="1px borders (NEW)" onDark />
+      <SwatchCard token="S_FG" hex={TOKENS.S_FG} role="Primary text" onDark />
+      <SwatchCard token="S_TEXT_MUTED" hex={TOKENS.S_TEXT_MUTED} role="Secondary text (NEW)" onDark />
+      <SwatchCard token="S_DIM" hex={TOKENS.S_DIM} role="Dimmed text / placeholders / icons" onDark />
+      <SwatchCard token="S_ACCENT" hex={TOKENS.S_ACCENT} role="Accent / running state. Same as S_RED." onDark />
+      <SwatchCard token="S_ACCENT_HOVER" hex={TOKENS.S_ACCENT_HOVER} role="Accent hover (lighter)" onDark />
+      <SwatchCard token="S_GREEN" hex={TOKENS.S_GREEN} role="START btn / break timer" onDark />
+      <SwatchCard token="S_RED" hex={TOKENS.S_RED} role="STOP / DELETE" onDark />
+      <SwatchCard token="S_YELLOW" hex={TOKENS.S_YELLOW} role="DONE / paused indicator" onDark />
+      <SwatchCard token="URL_LINK" hex={TOKENS.URL_LINK} role="Hyperlinks in description" onDark />
+      <SwatchCard token="BTN_TEXT_ON_ACCENT" hex={TOKENS.BTN_TEXT_ON_ACCENT} role="Text on bright color buttons" onDark />
+      <SwatchCard token="DEFAULT_FOCUS_BG" hex={TOKENS.DEFAULT_FOCUS_BG} role="Default red focus window bg" onDark />
+    </div>
+
+    <Note kind="warn">
+      Three NEW tokens (<Code>S_BG_DEEP</Code>, <Code>S_BORDER</Code>, <Code>S_TEXT_MUTED</Code>) are needed for the design's depth.
+      Either add them to the palette dict, or merge with closest existing — but visual quality drops if collapsed.
+    </Note>
+
+    <Note kind="devo">
+      Overlay button color (point 7 from your message): <Code>#FFFFFF</Code> at <Code>14% alpha</Code> on the red gradient,
+      hover <Code>22%</Code>, border <Code>18%</Code>. Codified as <Code>S_OVERLAY_BTN</Code> / <Code>_HOVER</Code> / <Code>_BORDER</Code> in <Code>tokens.jsx</Code>.
+    </Note>
+
+    {/* §2 Typography */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§2" title="Typography" subtitle="Inter for UI (4 weights bundled), JetBrains Mono for ALL numeric labels." />
+    </div>
+    <div style={{
+      background: TOKENS.S_SURFACE, padding: '0 20px', borderRadius: 10,
+      border: `1px solid ${TOKENS.S_BORDER}`, marginBottom: 20,
+    }}>
+      <TypeRow name="Display / Timer" sample="23:43" size={56} weight={700} mono />
+      <TypeRow name="Focus task title" sample="Make Focus App design" size={28} weight={700} />
+      <TypeRow name="App title" sample="Focus" size={18} weight={700} />
+      <TypeRow name="Body / task title" sample="Make Focus App design" size={13} weight={500} />
+      <TypeRow name="Time spent" sample="01:23:45" size={12} weight={500} mono />
+      <TypeRow name="Total time" sample="Total: 01:16:24" size={12} weight={500} mono />
+      <TypeRow name="Hint / hotkeys" sample="Ctrl+Shift+S Stop" size={10} weight={500} mono />
+      <TypeRow name="Eyebrow / WORK" sample="WORK · 1/4" size={12} weight={700} />
+    </div>
+    <Note>Mono labels (per your message §9): timer, total time, time spent, opacity %, work/break minutes, hotkeys hints. Marked with green MONO tag in the type sheet.</Note>
+
+    {/* §3 FocusWindow */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§3" title="FocusWindow · 500×210" subtitle="Flagship screen. 5 states. Frameless, R=18, always-on-top." />
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32, marginBottom: 30 }}>
+      <FWState label="WORK · running (default)" desc="Default red bg, white fg, accent dot solid"><FocusWindowSpec state="work-running" /></FWState>
+      <FWState label="WORK · paused" desc="Suffix PAUSED next to timer (Inter 14pt). Accent dot dimmed to 40%."><FocusWindowSpec state="work-paused" /></FWState>
+      <FWState label="BREAK" desc="Timer color → S_GREEN (#34D399). PhaseLabel = BREAK. Same red bg by default — user's accent color persists."><FocusWindowSpec state="break" /></FWState>
+      <FWState label="Flash · phase change" desc="Single frame at peak — bg flips to white, fg to user's focus bg color. 6× cycle, 250ms each."><FocusWindowSpec state="flash" /></FWState>
+      <FWState label="Custom user color · light bg" desc="User picks bright FocusBG. Layout reads on light too. fg auto-flips on contrast."><FocusWindowSpec state="work-running" focusBg="#F5F1E8" focusFg="#1F2731" /></FWState>
+    </div>
+    <Note kind="devo">
+      Circular progress (point 5): SVG <Code>strokeDashoffset</Code> here. In CTk → Canvas <Code>create_arc</Code>, redraw 1×/sec.
+      Track stroke = white 22%, progress stroke = fg (or S_GREEN in BREAK), strokeWidth=4, strokeLinecap=round.
+      Start at 12 o'clock (rotate -90°), counter-clockwise depletion.
+    </Note>
+
+    {/* §4 TaskCard */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§4" title="TaskCard · 8 states" subtitle="From brief §4.2. All states share the same 660×auto card; only state-dependent elements change." />
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <TCState num="1" label="collapsed · idle · pending" ><TaskCardSpec variant="collapsed-idle" /></TCState>
+      <TCState num="2" label="collapsed · active · pending" desc="Gradient fill (S_ACTIVE→S_SURFACE), accent border, LIVE badge, pulsing dot, ⏱ icon" ><TaskCardSpec variant="collapsed-active" /></TCState>
+      <TCState num="3" label="collapsed · idle · done" desc="Title strikethrough, fg→S_DIM, green checkmark, only DELETE × button" ><TaskCardSpec variant="collapsed-done" /></TCState>
+      <TCState num="4" label="collapsed · idle · pending · indicators" desc="📝 description present, 📷3 three images" ><TaskCardSpec variant="collapsed-indicators" /></TCState>
+      <TCState num="5" label="expanded · idle · pending (no thumbs)" ><TaskCardSpec variant="expanded-idle" /></TCState>
+      <TCState num="6" label="expanded · idle · pending (with thumbnails)" ><TaskCardSpec variant="expanded-thumbs" /></TCState>
+      <TCState num="7" label="expanded · active · pending" ><TaskCardSpec variant="expanded-active" /></TCState>
+      <TCState num="8" label="hover on action buttons" desc="brightness +12%, subtle outer ring 2px white 4%" ><TaskCardSpec variant="hover-buttons" /></TCState>
+    </div>
+
+    <Note kind="devo">
+      Button colors per state:
+      START → S_GREEN bg, BTN_TEXT_ON_ACCENT text.
+      DONE → S_YELLOW bg, BTN_TEXT_ON_ACCENT text.
+      STOP → S_RED bg, white text.
+      PAUSE → translucent S_YELLOW (15%), border 30%.
+      DELETE → ghost (transparent, S_BORDER, S_DIM icon).
+    </Note>
+
+    {/* §5 MainWindow */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§5" title="MainWindow · 720×650" subtitle="Final layout. Header is single row + settings row, hotkeys hint right-aligned in row 1." />
+    </div>
+    <div style={{ display: 'grid', placeItems: 'center', padding: 24, background: TOKENS.S_SURFACE, borderRadius: 10 }}>
+      <MainWindowSpec />
+    </div>
+
+    {/* §6 Spec sheet */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§6" title="Spacing, radii, sizes" />
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ background: TOKENS.S_SURFACE, padding: 20, borderRadius: 10, border: `1px solid ${TOKENS.S_BORDER}` }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Corner radii (CTk corner_radius)</div>
+        <SpecRow label="MainWindow" value="—  (system frame)" />
+        <SpecRow label="FocusWindow" value="18 px" />
+        <SpecRow label="Card" value="10 px" />
+        <SpecRow label="Input / pill" value="6–8 px" />
+        <SpecRow label="Button" value="6 px" />
+        <SpecRow label="Badge / kbd" value="3–4 px" />
+      </div>
+      <div style={{ background: TOKENS.S_SURFACE, padding: 20, borderRadius: 10, border: `1px solid ${TOKENS.S_BORDER}` }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Spacing</div>
+        <SpecRow label="Window padding X" value="22 px" />
+        <SpecRow label="Card padding" value="10 / 12 px (Y / X)" />
+        <SpecRow label="Card stack gap" value="6 px" />
+        <SpecRow label="Button height" value="28 px" />
+        <SpecRow label="Input height" value="40 px" />
+        <SpecRow label="Title bar height" value="32 px" />
+      </div>
+    </div>
+
+    {/* §7 Iconography */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§7" title="Iconography · 11 PNG @2x" subtitle="Stroke icons, 1.5px stroke at 1x. Export 32×32 (=2x of 16). Plus halo dots @2x." />
+    </div>
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12,
+    }}>
+      {['play','pause','stop','check','plus','close','settings','paperclip','chevron-down','chevron-right','upload'].map(name => (
+        <div key={name} style={{
+          background: TOKENS.S_SURFACE, padding: 14, borderRadius: 8,
+          border: `1px solid ${TOKENS.S_BORDER}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 6,
+            background: TOKENS.S_BG_DEEP,
+            display: 'grid', placeItems: 'center',
+          }}>
+            <Icon name={name} size={20} color={TOKENS.S_FG} />
+          </div>
+          <div style={{ fontSize: 11, color: TOKENS.S_TEXT_MUTED, fontFamily: TYPOGRAPHY.fontMono }}>{name}</div>
+        </div>
+      ))}
+      {/* Halo dots */}
+      <div style={{
+        background: TOKENS.S_SURFACE, padding: 14, borderRadius: 8,
+        border: `1px solid ${TOKENS.S_BORDER}`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 6,
+          background: TOKENS.S_BG_DEEP,
+          display: 'grid', placeItems: 'center',
+        }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: TOKENS.S_ACCENT,
+            boxShadow: `0 0 10px ${TOKENS.S_ACCENT}`,
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: TOKENS.S_TEXT_MUTED, fontFamily: TYPOGRAPHY.fontMono }}>dot-running</div>
+      </div>
+      <div style={{
+        background: TOKENS.S_SURFACE, padding: 14, borderRadius: 8,
+        border: `1px solid ${TOKENS.S_BORDER}`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 6,
+          background: TOKENS.S_BG_DEEP,
+          display: 'grid', placeItems: 'center',
+        }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%',
+            border: `1.5px solid ${TOKENS.S_DIM}`,
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: TOKENS.S_TEXT_MUTED, fontFamily: TYPOGRAPHY.fontMono }}>dot-idle</div>
+      </div>
+    </div>
+    <Note>SVG sources will be provided alongside PNG @2x exports — engineer can convert if scaling rules change.</Note>
+
+    {/* §8 Micro-interactions */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§8" title="Micro-interactions" subtitle="Per brief §6 — describing each transition for the engineer." />
+    </div>
+    <div style={{ background: TOKENS.S_SURFACE, padding: 20, borderRadius: 10, border: `1px solid ${TOKENS.S_BORDER}`, fontSize: 13, lineHeight: 1.7 }}>
+      <p style={{ margin: '0 0 12px' }}><strong>Hover (all buttons):</strong> brightness +12%, fade-in 80ms.</p>
+      <p style={{ margin: '0 0 12px' }}><strong>Pressed:</strong> brightness −8%, scale unchanged.</p>
+      <p style={{ margin: '0 0 12px' }}><strong>Disabled:</strong> opacity 40%, no hover response.</p>
+      <p style={{ margin: '0 0 12px' }}><strong>Card expand/collapse:</strong> instant (per brief §6 — animation optional, skipped to keep CTk simple).</p>
+      <p style={{ margin: '0 0 12px' }}><strong>Pulse on running dot:</strong> opacity 1.0 ↔ 0.4, 1400ms ease-in-out, ~30 fps via Canvas itemconfig.</p>
+      <p style={{ margin: '0 0 12px' }}><strong>Phase-change flash:</strong> bg flips to white, fg flips to user FocusBG; 6× cycle, 250ms per flip; mid-fade not required.</p>
+      <p style={{ margin: 0 }}><strong>FocusWindow drag:</strong> standard mouse-down move; cursor → grabbing during drag; opacity reduces to 0.8 while dragging.</p>
+    </div>
+
+    {/* §9 Out of scope */}
+    <div style={{ marginTop: 60 }}>
+      <SectionTitle num="§9" title="Out of scope" />
+    </div>
+    <ul style={{ fontSize: 13, color: TOKENS.S_TEXT_MUTED, lineHeight: 1.8, paddingLeft: 20 }}>
+      <li>Light theme — dark only this round.</li>
+      <li>Onboarding, statistics screens, mobile.</li>
+      <li>Custom color picker — system <Code>colorchooser</Code> stays.</li>
+      <li>Smooth card-expand animation.</li>
+      <li>Backdrop blur on overlay buttons (Tk ceiling).</li>
+    </ul>
+
+    {/* Sign-off */}
+    <div style={{
+      marginTop: 80, padding: 24,
+      background: TOKENS.S_SURFACE, borderRadius: 10,
+      border: `1px solid ${TOKENS.S_BORDER}`,
+      fontSize: 12, color: TOKENS.S_TEXT_MUTED,
+    }}>
+      <strong style={{ color: TOKENS.S_FG }}>Deliverables in this package:</strong>
+      <ul style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.8 }}>
+        <li>This spec page (HTML, all states, all tokens) — also exportable to PDF.</li>
+        <li>Inter .ttf × 4 weights (Regular/Medium/SemiBold/Bold) — to be bundled.</li>
+        <li>JetBrains Mono .ttf (Regular/Medium/Bold) — for all numeric labels.</li>
+        <li>11 icons + 2 dots as PNG @2x (32×32) + SVG sources.</li>
+        <li>Token map matching <Code>S_*</Code> names from brief §5.</li>
+      </ul>
+    </div>
+  </div>
+);
+
+const FWState = ({ label, desc, children }) => (
+  <div>
+    <StateLabel>{label}</StateLabel>
+    {desc && <div style={{ fontSize: 12, color: TOKENS.S_TEXT_MUTED, marginBottom: 12, marginTop: -4, lineHeight: 1.5 }}>{desc}</div>}
+    <div style={{
+      padding: 30, background: TOKENS.S_BG_DEEP, borderRadius: 10,
+      border: `1px solid ${TOKENS.S_BORDER}`,
+      display: 'grid', placeItems: 'center',
+    }}>
+      {children}
+    </div>
+  </div>
+);
+
+const TCState = ({ num, label, desc, children }) => (
+  <div>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+      <span style={{
+        fontFamily: TYPOGRAPHY.fontMono, fontSize: 11, color: TOKENS.S_ACCENT, fontWeight: 700,
+      }}>#{num}</span>
+      <StateLabel>{label}</StateLabel>
+    </div>
+    {desc && <div style={{ fontSize: 12, color: TOKENS.S_TEXT_MUTED, marginBottom: 10, lineHeight: 1.5 }}>{desc}</div>}
+    <div style={{
+      padding: 18, background: TOKENS.S_BG_DEEP, borderRadius: 10,
+      border: `1px solid ${TOKENS.S_BORDER}`,
+    }}>
+      {children}
+    </div>
+  </div>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Page />);
+</script>
+</body>
+</html>

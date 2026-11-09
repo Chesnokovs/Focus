@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# PyInstaller output (build.bat regenerates all of it)
+build/
+dist/
+*.spec
+
+# User data created when running from source
+focus_tasks.json
+focus_tasks.json.*
+focus_images/
+focus.log
+
+# Local tool state
+.claude/settings.local.json
+.design-canvas.state.json
