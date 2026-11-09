@@ -1,228 +1,265 @@
 # Focus App
 
-Настольное Windows-приложение для удержания фокуса на одной задаче. Список дел + Pomodoro-таймер + плавающее окно поверх всех окон, чтобы текущая задача всегда была перед глазами.
+A Windows desktop app for staying focused on one task at a time: a task list, a Pomodoro timer, and a small always-on-top window that keeps the current task in front of you.
 
 ![Focus App icon](Icon.svg)
 
-## Содержание
+## Contents
 
-1. [Запуск готового .exe](#запуск-готового-exe)
-2. [Что умеет](#что-умеет)
-3. [Структура проекта](#структура-проекта)
-4. [Сборка из исходников](#сборка-из-исходников)
-5. [Запуск в режиме разработки](#запуск-в-режиме-разработки)
-6. [Документация для разработчика](#документация-для-разработчика)
-7. [Документация для дизайнера](#документация-для-дизайнера)
-8. [Где живут данные пользователя](#где-живут-данные-пользователя)
-9. [История версий](#история-версий)
+1. [Install](#install)
+2. [Features](#features)
+3. [Where your data lives](#where-your-data-lives)
+4. [Project layout](#project-layout)
+5. [Building the installer](#building-the-installer)
+6. [Running from source](#running-from-source)
+7. [Developer notes](#developer-notes)
+8. [Designer notes](#designer-notes)
+9. [Third-party components](#third-party-components)
+10. [Version history](#version-history)
 
-## Запуск готового .exe
+## Install
 
-`dist/FocusApp.exe` — самодостаточный файл (~49 МБ), работает на любом Windows 10/11 без установки Python. Двойной клик — и приложение запускается.
+Run `FocusApp-Setup-<version>.exe` and follow the wizard.
 
-## Что умеет
+- **Requirements:** 64-bit Windows 10 (version 1809 or later) or Windows 11. Nothing else needs to be installed — Python, Qt and the Microsoft C++ runtime are all inside the app.
+- **No administrator rights needed.** By default the app installs for the current user into `%LOCALAPPDATA%\Programs\Focus`. The wizard also offers "install for all users" if you have administrator rights.
+- **Options in the wizard:** a desktop shortcut, and starting Focus automatically (hidden in the tray) when you sign in to Windows.
+- **Upgrading:** run a newer installer over the old one. If Focus is running, the installer asks you to quit it first (tray icon → **Quit**).
+- **Uninstalling:** *Settings → Apps → Installed apps → Focus → Uninstall*. Your tasks are kept (see [Where your data lives](#where-your-data-lives)).
 
-- Список задач с инлайн-редактированием названия и описания.
-- Описание поддерживает гиперссылки (**Ctrl+клик** открывает в браузере; обычный клик ставит курсор).
-- К задачам можно прикреплять картинки: через кнопку **+ Image**, через **Ctrl+V** из буфера, через **drag-drop** файла из Проводника. Картинка копируется в папку данных, оригинал можно удалять. Клик по миниатюре открывает картинку в полный размер.
-- 4 состояния задачи: idle (ожидает) / running (идёт работа) / paused (на паузе) / done (выполнена). Выполненную задачу можно вернуть в работу (**Reopen**), любую — удалить (**Delete** в раскрытой карточке).
-- Pomodoro-таймер — по умолчанию 25 минут работы, 5 минут перерыв. Автоматическое переключение фаз со звуком и уведомлением.
-- Плавающее окно поверх всех окон с большим заголовком задачи и таймером. Двойной клик по нему открывает главное окно.
-- **Системный трей.** Свернуть или закрыть главное окно — оно прячется в трей, таймер продолжает идти. Клик по иконке возвращает окно; в меню по правой кнопке — Pause/Resume и **Quit** (единственный способ выйти из приложения).
-- Повторный запуск `.exe` не создаёт вторую копию, а показывает окно уже работающей.
-- Статистика дня в футере: **Today** (общее время фокуса сегодня) и **Streak** (сколько дней подряд была хотя бы секунда фокуса).
-- Авто-сохранение всех изменений на диск.
+> **"Windows protected your PC".** The installer is not code-signed, so Microsoft SmartScreen may show this warning on a PC that has not seen the file before. Click **More info → Run anyway**. Removing the warning requires a paid code-signing certificate.
 
-## Структура проекта
+## Features
+
+- Task list with inline editing of the name and description.
+- Links in the description are highlighted; **Ctrl+Click** opens one in the browser (a plain click places the caret).
+- Attach images to a task with the **+ Image** button, with **Ctrl+V** from the clipboard, or by dragging files from Explorer. The image is copied into the data folder, so the original can be deleted. Click a thumbnail to view it full size.
+- Four task states: idle / running / paused / done. A done task can be put back to work (**Reopen**); any task can be removed (**Delete** in the expanded card).
+- Pomodoro timer — 25 minutes of work, 5 minutes of break by default. Phases switch automatically, with a sound and a notification.
+- A floating always-on-top window with the task title and the timer. Double-click it to open the main window.
+- **System tray.** Minimising or closing the main window hides it to the tray while the timer keeps running. Click the tray icon to bring the window back; right-click for Pause/Resume and **Quit** — the only way to exit the app.
+- Launching the app again does not start a second copy; it shows the window of the one already running.
+- Daily statistics in the footer: **Today** (total focus time today) and **Streak** (consecutive days with at least one second of focus).
+- Every change is saved to disk automatically.
+
+## Where your data lives
+
+The installed app keeps everything in `%APPDATA%\FocusApp\` (paste that into Explorer's address bar):
+
+- **`focus_tasks.json`** — all tasks, settings and daily statistics. A single file; copy it to back up.
+- **`focus_tasks.json.bak`** — a copy from the previous successful launch.
+- **`focus_images\`** — images attached to tasks.
+- **`focus.log`** — error log.
+
+The folder is independent of where the program is installed: upgrading, reinstalling or uninstalling the app does not touch it. To remove your data as well, delete the folder by hand.
+
+**Coming from version 2.0 or earlier.** Those versions were a single portable `FocusApp.exe` that kept its data next to itself. When version 2.1+ is started from that same folder, it copies `focus_tasks.json` and `focus_images\` into `%APPDATA%\FocusApp\` once; the old files are left in place as a backup and are no longer read. If you install with the installer instead, copy those two items into `%APPDATA%\FocusApp\` yourself before the first launch.
+
+## Project layout
 
 ```
 Focus_App/
-├── app/                          # Исходный код приложения (PySide6)
-│   ├── main.py                   # точка входа
-│   ├── themes.py                 # цветовые темы
-│   ├── fonts.py                  # загрузка Inter / JetBrains Mono
-│   ├── icons.py                  # реестр PNG-иконок
-│   ├── models.py                 # Task, Stats, Settings, Store (JSON-персистентность)
-│   ├── windows/                  # верхнеуровневые окна
-│   │   ├── main_window.py        # главное окно со списком задач
-│   │   ├── focus_window.py       # плавающее окно поверх всех окон
-│   │   └── image_viewer.py       # просмотр картинок
-│   ├── widgets/                  # переиспользуемые виджеты
-│   │   ├── task_card.py          # карточка задачи (4 состояния, expand-панель)
-│   │   ├── state_indicator.py    # пульсирующая точка-индикатор
-│   │   ├── action_button.py      # кнопки 5 вариантов (start/done/stop/...)
-│   │   ├── circular_progress.py  # круглая прогресс-дуга для FocusWindow
-│   │   ├── pulsing_dot.py        # маленькая пульсирующая точка для шапки overlay
-│   │   ├── elided_label.py       # однострочный текст с «…» вместо растягивания окна
-│   │   └── description_edit.py   # textarea с подсветкой ссылок и paste/drop картинок
+├── app/                          # Application source (PySide6)
+│   ├── __init__.py               # __version__ — the single source of the version
+│   ├── main.py                   # entry point: single instance, logging, startup
+│   ├── themes.py                 # colour themes
+│   ├── fonts.py                  # loads Inter / JetBrains Mono
+│   ├── icons.py                  # PNG icon registry
+│   ├── models.py                 # Task, Stats, Settings, Store (JSON persistence)
+│   ├── windows/                  # top-level windows
+│   │   ├── main_window.py        # main window: task list, timer, tray icon
+│   │   ├── focus_window.py       # floating always-on-top window
+│   │   └── image_viewer.py       # full-size image viewer
+│   ├── widgets/                  # reusable widgets
+│   │   ├── task_card.py          # task card (4 states, expandable panel)
+│   │   ├── state_indicator.py    # pulsing state dot
+│   │   ├── action_button.py      # action buttons, 5 variants (start/done/stop/...)
+│   │   ├── circular_progress.py  # progress ring for FocusWindow
+│   │   ├── pulsing_dot.py        # small pulsing dot in the overlay header
+│   │   ├── elided_label.py       # one-line text that shows "…" instead of stretching the window
+│   │   └── description_edit.py   # text area with link highlighting and image paste/drop
 │   └── assets/
-│       ├── fonts/                # 7 .ttf шрифтов (Inter + JetBrains Mono)
-│       ├── icons/                # 26 PNG @2x иконок
-│       ├── icon.ico              # иконка приложения (мульти-разрешение)
-│       ├── _build_icons.py       # пере-рендер UI-иконок из inline-SVG
-│       └── _build_app_icon.py    # пере-рендер icon.ico из Icon.svg
+│       ├── fonts/                # 7 .ttf fonts (Inter + JetBrains Mono)
+│       ├── icons/                # PNG @2x icons
+│       ├── icon.ico              # application icon (multi-resolution)
+│       ├── _build_icons.py       # re-renders the UI icons from inline SVG
+│       └── _build_app_icon.py    # re-renders icon.ico from Icon.svg
 │
-├── Design/                       # Передача от дизайнера (живой образец)
-│   └── Focus App/                # JSX-исходники + спецификации
-│       ├── Focus App Spec.html   # читаемая спека дизайн-системы (открыть в браузере)
-│       ├── Focus App.html        # дизайн-канвас с альтернативными темами
-│       ├── components/           # эталонные React-компоненты с темами в Theme dict
-│       └── spec/                 # JSX модули спеки
+├── installer/
+│   └── FocusApp.iss              # Inno Setup script
 │
-├── legacy/                       # Архив: старая CustomTkinter-версия
-│   └── focus_app.py              # 1 файл, до миграции на PySide6
+├── Design/                       # Designer hand-off (live reference)
+│   └── Focus App/                # JSX sources + specifications
+│       ├── Focus App Spec.html   # readable design-system spec (open in a browser)
+│       ├── Focus App.html        # design canvas with the alternative themes
+│       ├── components/           # reference React components, themes in a THEMES dict
+│       └── spec/                 # JSX modules of the spec
 │
-├── dist/                         # Артефакты сборки (в git не попадает)
-│   └── FocusApp.exe              # собранное приложение
+├── legacy/                       # Archive: the old CustomTkinter version
+│   └── focus_app.py              # single file, before the move to PySide6
 │
-├── DESIGN_BRIEF.md               # ТЗ редизайна v3 (для исторического контекста)
-├── Icon.svg                      # источник иконки приложения
-├── README.md                     # этот файл
-├── build.bat                     # скрипт сборки .exe
-├── run.py                        # точка входа для PyInstaller
-└── requirements.txt              # зависимости Python
+├── build/                        # Build intermediates (not in git)
+├── dist/                         # Build output: the installer (not in git)
+│
+├── DESIGN_BRIEF.md               # redesign brief v3 (historical context)
+├── FocusApp.spec                 # PyInstaller recipe
+├── Icon.svg                      # source of the application icon
+├── README.md                     # this file
+├── build.bat                     # builds the app and the installer
+├── run.py                        # entry point used by PyInstaller
+└── requirements.txt              # Python dependencies
 ```
 
-## Сборка из исходников
+## Building the installer
 
-### Требования
+### Requirements
 
-- Python 3.12+
-- Windows 10/11
+- Windows 10/11, 64-bit
+- Python 3.10 or newer
+- [Inno Setup 6](https://jrsoftware.org/isdl.php)
 
-### Один раз — установить зависимости
+### Build
 
-```cmd
-pip install -r requirements.txt
-```
-
-### Каждый раз — пересобрать .exe
-
-Двойной клик по `build.bat` или из терминала:
+Double-click `build.bat`, or from a terminal:
 
 ```cmd
 build.bat
 ```
 
-Готовый `.exe` появится в `dist/FocusApp.exe` (~49 МБ, занимает около минуты на сборку).
+The script:
 
-## Запуск в режиме разработки
+1. creates a private `.venv` and installs the packages from `requirements.txt` into it (nothing is installed system-wide);
+2. runs PyInstaller with `FocusApp.spec` → `build\app\FocusApp\` (the app as a folder: `FocusApp.exe` + `_internal\`);
+3. runs Inno Setup with `installer\FocusApp.iss` → **`dist\FocusApp-Setup-<version>.exe`**.
 
-Без сборки `.exe`, прямо из исходников:
+The whole build takes about a minute; the installer is roughly 27 MB.
+
+### Releasing a new version
+
+Change `__version__` in [app/__init__.py](app/__init__.py) and run `build.bat`. The version is stamped into `FocusApp.exe`, shown in *Installed apps*, and used in the installer's file name. Do not change `AppId` in `installer\FocusApp.iss` — it is what lets a new installer upgrade the previous version in place.
+
+## Running from source
+
+Without building anything:
 
 ```cmd
+pip install -r requirements.txt
 python -m app.main
 ```
 
-Используется при разработке. Данные пишутся в `focus_tasks.json` рядом с `app/` (файл в `.gitignore`), а не в папку данных собранного приложения, — так эксперименты не трогают настоящие задачи. По той же причине dev-запуск и `.exe` считаются разными приложениями и могут работать одновременно.
+In this mode the data is written to `focus_tasks.json` next to `app/` (the file is in `.gitignore`), not to `%APPDATA%\FocusApp\`, so experiments never touch your real tasks. For the same reason a run from source and the installed app count as different applications and can run side by side.
 
-## Документация для разработчика
+## Developer notes
 
-### Точки расширения
+### Extension points
 
-| Что хочешь добавить | Где | Заметки |
+| To add | Where | Notes |
 |---|---|---|
-| Новое поле у задачи | [app/models.py](app/models.py) — `Task` | Не забудь обновить `to_dict()` / `from_dict()` для совместимости со старыми JSON |
-| Новое состояние задачи | [app/widgets/task_card.py](app/widgets/task_card.py) — `_state_name()` + `_build_action_strip()`, [app/widgets/state_indicator.py](app/widgets/state_indicator.py) | Добавить новый ключ + новое визуальное состояние индикатора |
-| Новая кнопка действия | [app/widgets/action_button.py](app/widgets/action_button.py) | 5 готовых вариантов; добавь шестой в `_apply_style()` |
-| Новый sidebar / экран | новый файл в [app/windows/](app/windows/) | Подключить из `MainWindow._build_ui()` |
-| Глобальные хоткеи (Win32) | новый модуль `app/hotkeys.py` | Использовать `ctypes.windll.user32.RegisterHotKey` (см. legacy/focus_app.py для готового образца) |
-| Настройки UI (popover) | новый файл в [app/windows/](app/windows/) | Открывать из MainWindow по клику на ⚙ — для этого вернуть `IconButton("settings", ...)` в `_build_header()` |
-| Длинный break после N pomodoro-циклов | [app/windows/main_window.py](app/windows/main_window.py) — `_switch_phase()` | Сейчас простое work↔break без счёта циклов |
+| A new task field | [app/models.py](app/models.py) — `Task` | Update `from_dict()` so older JSON files still load |
+| A new task state | [app/widgets/task_card.py](app/widgets/task_card.py) — `_state_name()` + `_build_action_strip()`, [app/widgets/state_indicator.py](app/widgets/state_indicator.py) | Add the new key and its indicator visual |
+| A new action button | [app/widgets/action_button.py](app/widgets/action_button.py) | 5 variants exist; add a sixth in `_apply_style()` |
+| A new sidebar / screen | a new file in [app/windows/](app/windows/) | Wire it up from `MainWindow._build_ui()` |
+| Global hotkeys (Win32) | a new module `app/hotkeys.py` | Use `ctypes.windll.user32.RegisterHotKey` (legacy/focus_app.py has a working example) |
+| Settings UI (popover) | a new file in [app/windows/](app/windows/) | Open it from MainWindow on a ⚙ click — put `IconButton("settings", ...)` back into `_build_header()` |
+| A long break after N Pomodoro cycles | [app/windows/main_window.py](app/windows/main_window.py) — `_switch_phase()` | Currently a plain work↔break toggle with no cycle counter |
+| A tray menu item | [app/windows/main_window.py](app/windows/main_window.py) — `_build_tray()` | |
+| An installer option | [installer/FocusApp.iss](installer/FocusApp.iss) — `[Tasks]` | |
 
-### Архитектурные решения
+### Architecture decisions
 
-- **PySide6 (Qt 6)** — вся отрисовка через Qt. Раньше была CustomTkinter (см. legacy/), но мы упёрлись в потолок производительности — Tkinter без двойной буферизации мерцает на каждом изменении.
-- **Один источник правды для состояния — Store.** Все мутации проходят через `MainWindow._on_*` хендлеры, потом `store.save()` пишет JSON.
-- **Инкрементальные обновления карточек.** Когда состояние одной задачи меняется, перестраивается **только её** карточка (`update_state` или `_refresh_card_expansion`). Полный rebuild списка — только при первом paint.
-- **Старые виджеты карточки удаляются через `deleteLater()`**, а не сразу. Перестройку обычно запускает сигнал дочернего виджета (клик кнопки, `editingFinished` поля имени); если уничтожить этот виджет прямо внутри его сигнала, Qt продолжит выполнять код на освобождённом объекте — так приложение падало при переименовании задачи.
-- **Таймер считает по монотонным часам.** `QTimer` раз в 250 мс только проверяет, сколько целых секунд прошло (`_on_tick`), поэтому опоздавший или пропущенный тик не теряет время. Разрыв больше минуты считается сном компьютера и в фокус не идёт.
-- **FocusWindow — passive view.** Не считает время сама, получает push-обновления от MainWindow. Это убирает рассинхрон между двумя окнами.
-- **Сохранение атомарное**: JSON пишется во временный файл и подменяет основной через `os.replace`. При каждом успешном запуске обновляется `focus_tasks.json.bak`; нечитаемый файл не затирается, а переименовывается в `focus_tasks.json.corrupt-<дата>`, и данные берутся из бэкапа.
-- **Сохранение раз в 30 секунд работы таймера** — чтобы не насиловать диск, но не терять много при крэше. Плюс сохранение при любом изменении задачи, при выходе и при завершении сеанса Windows.
-- **Выход — только через `MainWindow.quit_app()`.** `closeEvent` при наличии трея прячет окно; `QApplication.setQuitOnLastWindowClosed(False)` не даёт Qt завершиться, когда видимых окон нет.
-- **Один экземпляр** — `QLocalServer` в [app/main.py](app/main.py): второй запуск подключается к первому, просит показать окно и выходит.
-- **Лог** — `focus.log` в папке данных (в оконном `.exe` нет консоли, необработанные исключения пишутся туда).
+- **PySide6 (Qt 6)** — all rendering goes through Qt. The first version used CustomTkinter (see legacy/) and hit the toolkit's performance ceiling: without double buffering, Tkinter flickers on every change.
+- **The Store is the single source of truth.** Every mutation goes through a `MainWindow._on_*` handler, which then saves the JSON.
+- **Incremental card updates.** When one task changes, only its card is rebuilt (`update_state` / `_refresh_card_expansion`). The whole list is rebuilt only on first paint.
+- **A card's old widgets are removed with `deleteLater()`**, never destroyed on the spot. A rebuild is usually triggered by a child widget's own signal (a button click, the name field's `editingFinished`); destroying that widget inside its own signal leaves Qt running code on a freed object — this is what used to crash the app on rename.
+- **The timer counts against the monotonic clock.** A `QTimer` fires every 250 ms and only checks how many whole seconds have passed (`_on_tick`), so a late or skipped timer event never loses time. A gap longer than a minute is treated as the PC sleeping and is not counted as focus.
+- **FocusWindow is a passive view.** It does not count time itself; MainWindow pushes updates to it. This rules out drift between the two windows.
+- **Saving is atomic**: the JSON is written to a temporary file that then replaces the real one via `os.replace`. Every successful launch refreshes `focus_tasks.json.bak`; an unreadable file is not overwritten but renamed to `focus_tasks.json.corrupt-<date>`, and the data is restored from the backup.
+- **Periodic save every 30 seconds of timer time** — easy on the disk, little to lose in a crash. The app also saves on every task change, on quit, and when the Windows session ends.
+- **Quitting goes through `MainWindow.quit_app()` only.** With a tray available, `closeEvent` hides the window; `QApplication.setQuitOnLastWindowClosed(False)` keeps Qt alive when no window is visible.
+- **Single instance** — a `QLocalServer` in [app/main.py](app/main.py): a second launch connects to the first, asks it to show its window, and exits.
+- **Installer awareness** — the built app holds a named mutex (`FocusAppRunningMutex`) that Inno Setup checks (`AppMutex`), so files are never replaced while a copy sits in the tray. `--minimized` on the command line (used by the autostart entry) starts the app hidden in the tray.
+- **Folder build, not one-file.** PyInstaller's one-file mode unpacks the whole app to a temp folder on every launch; the folder build starts instantly, and the installer is what makes it a single download.
+- **Log** — `focus.log` in the data folder (the windowed `.exe` has no console; unhandled exceptions are written there).
 
-### Как запустить тесты
+### Tests
 
-Тестов сейчас нет. Можно добавить через `pytest` — запускать любой headless Qt-тест нужно через `QApplication([])` в фикстуре и с `QT_QPA_PLATFORM=offscreen`; путь к данным подменяется через `app.models.data_dir`. Трей на платформе `offscreen` недоступен — его проверять только на настоящем рабочем столе.
+There are no automated tests in the repository yet. They can be added with `pytest`: create a `QApplication([])` in a fixture, set `QT_QPA_PLATFORM=offscreen`, and point the app at a temporary folder by replacing `app.models.data_dir`. The system tray is not available on the `offscreen` platform — tray behaviour has to be tested on a real desktop.
 
-## Документация для дизайнера
+## Designer notes
 
-Этот раздел — **для тебя, если хочешь добавить новую тему / скин** (например, светлую). Архитектура заранее заложена под смену тем; нужно только добавить новые цвета.
+This section is for you if you want to **add a new theme / skin** (a light one, for example). The architecture is ready for theme switching; only the colours need to be added.
 
-### Где живут цвета (палитра)
+### Where the colours (palette) live
 
-Все цвета приложения — в одном файле: [app/themes.py](app/themes.py). Это Python, но синтаксис простой:
+Every colour in the app is in one file: [app/themes.py](app/themes.py). It is Python, but the syntax is simple:
 
 ```python
 GUNMETAL = Theme(
     name="gunmetal",
     is_dark=True,
-    S_BG="#1F2731",        # фон главного окна
-    S_BG_DEEP="#161D26",   # title bar / footer (более глубокий)
-    S_SURFACE="#33404E",   # карточки, поля ввода
-    S_ACTIVE="#3D4B5B",    # фон активной задачи (база под градиент)
-    S_BORDER="#2A3540",    # 1px рамки
-    S_FG="#DBE3EC",        # основной текст
-    S_TEXT_MUTED="#94A3B3",# вторичный текст
-    S_DIM="#7B8A9D",       # приглушённый текст / placeholder
-    S_ACCENT="#EF4444",    # красный — running, кнопки Start, FocusWindow
+    S_BG="#1F2731",        # main window background
+    S_BG_DEEP="#161D26",   # title bar / footer (deeper)
+    S_SURFACE="#33404E",   # cards, input fields
+    S_ACTIVE="#3D4B5B",    # active task background (base under the gradient)
+    S_BORDER="#2A3540",    # 1px borders
+    S_FG="#DBE3EC",        # primary text
+    S_TEXT_MUTED="#94A3B3",# secondary text
+    S_DIM="#7B8A9D",       # dimmed text / placeholder
+    S_ACCENT="#EF4444",    # red — running, Start buttons, FocusWindow
     S_ACCENT_HOVER="#F87171",
     S_GREEN="#34D399",     # done / break
     S_RED="#EF4444",       # stop / delete
     S_YELLOW="#FBBF24",    # paused
-    URL_LINK="#7DD3FC",    # ссылки в описании
-    BTN_TEXT_ON_ACCENT="#0F1620",  # текст на ярких кнопках
-    DEFAULT_FOCUS_BG="#DC2626",     # фон FocusWindow (всегда красный по нынешней спеке)
+    URL_LINK="#7DD3FC",    # links in the description
+    BTN_TEXT_ON_ACCENT="#0F1620",  # text on bright buttons
+    DEFAULT_FOCUS_BG="#DC2626",     # FocusWindow background (always red in the current spec)
     DEFAULT_FOCUS_FG="#FFFFFF",
-    S_OVERLAY_BTN="rgba(255,255,255,0.14)",          # кнопки на красном overlay
+    S_OVERLAY_BTN="rgba(255,255,255,0.14)",          # buttons on the red overlay
     S_OVERLAY_BTN_HOVER="rgba(255,255,255,0.22)",
     S_OVERLAY_BTN_BORDER="rgba(255,255,255,0.18)",
 )
 ```
 
-### Как добавить новую тему (пример: светлая)
+### Adding a new theme (example: a light one)
 
-1. **Открой [app/themes.py](app/themes.py)** в любом редакторе кода (VS Code, Notepad++, Sublime).
-2. **Скопируй блок `GUNMETAL = Theme(...)` целиком**, переименуй в `PAPER` (или как назовёшь).
-3. **Заполни новые hex-значения** для каждого токена. Шпаргалка по семантике токена — в комментариях справа от каждой строки в коде.
-4. **Зарегистрируй тему** в словаре `THEMES`:
+1. **Open [app/themes.py](app/themes.py)** in any code editor (VS Code, Notepad++, Sublime).
+2. **Copy the whole `GUNMETAL = Theme(...)` block** and rename it to `PAPER` (or any name you like).
+3. **Fill in new hex values** for each token. The comment to the right of each line says what the token is for.
+4. **Register the theme** in the `THEMES` dictionary:
 
    ```python
    THEMES: dict[str, Theme] = {
        "gunmetal": GUNMETAL,
-       "paper": PAPER,            # ← добавил
+       "paper": PAPER,            # ← added
    }
    ```
 
-5. **Активируй тему** одной строкой:
+5. **Activate the theme** with one line:
 
    ```python
-   ACTIVE_THEME_NAME = "paper"    # ← было "gunmetal"
+   ACTIVE_THEME_NAME = "paper"    # ← was "gunmetal"
    ```
 
-6. **Запусти приложение** и проверь визуал.
+6. **Run the app** and check the result.
 
-Можешь ничего не понимать в Python кроме того, что показано выше — этих 6 шагов достаточно. Никаких импортов, классов, функций не нужно трогать.
+You do not need to know any Python beyond what is shown above — these six steps are enough. No imports, classes or functions have to be touched.
 
-### Где смотреть, как выглядят альтернативные темы
+### Where to see the alternative themes
 
-В пакете дизайнера уже есть **6 готовых тем** в JSX-исходниках:
+The designer package already contains several ready-made themes in the JSX sources:
 
-- **[Design/Focus App/components/MainWindow.jsx](Design/Focus%20App/components/MainWindow.jsx)** — посмотри объект `THEMES` в начале файла. Там полностью прописаны:
-  - `graphite` (тёмный, исходный)
-  - `paper` (светлый Things-like)
-  - `cream` (тёплый кремовый)
-  - `slate` (мягкий blue-gray)
-  - `silver` (серебристый, премиум)
-  - `gunmetal` (текущий активный)
-  - `pewter` (тёплый стальной)
+- **[Design/Focus App/components/MainWindow.jsx](Design/Focus%20App/components/MainWindow.jsx)** — see the `THEMES` object at the top of the file. It fully defines:
+  - `graphite` (dark, the original)
+  - `paper` (light, Things-like)
+  - `cream` (warm cream)
+  - `slate` (soft blue-gray)
+  - `silver` (silvery, premium)
+  - `gunmetal` (the active one)
+  - `pewter` (warm steel)
 
-- **[Design/Focus App/Focus App.html](Design/Focus%20App/Focus%20App.html)** — открой в браузере, увидишь все 6 тем рядом, как они смотрятся в живую.
+- **[Design/Focus App/Focus App.html](Design/Focus%20App/Focus%20App.html)** — open it in a browser to see the themes side by side, as they look live.
 
-Если выбираешь готовую — просто перенеси соответствующие цвета в Python. Маппинг JSX → Python токен:
+To use a ready-made theme, just carry its colours over to Python. JSX → Python token mapping:
 
 | JSX | Python |
 |---|---|
@@ -236,69 +273,66 @@ GUNMETAL = Theme(
 | `text2` | `S_TEXT_MUTED` |
 | `text3` | `S_DIM` |
 | `accent` | `S_ACCENT` |
-| `accentSoft` | (не нужен — вычисляется через rgba 12% от S_ACCENT) |
+| `accentSoft` | (not needed — computed as rgba 12% of S_ACCENT) |
 | `success` | `S_GREEN` |
 | `warn` | `S_YELLOW` |
 | `footer` | `S_BG_DEEP` |
 
-### Где лежат шрифты
+### Fonts
 
-[app/assets/fonts/](app/assets/fonts/) — 7 файлов .ttf:
+[app/assets/fonts/](app/assets/fonts/) holds 7 .ttf files:
 - Inter (Regular / Medium / SemiBold / Bold)
 - JetBrains Mono (Regular / Medium / Bold)
 
-Если нужен другой шрифт:
-1. Положи .ttf в `app/assets/fonts/`.
-2. Открой [app/fonts.py](app/fonts.py).
-3. Добавь имя файла в массив `FONT_FILES`.
-4. Поменяй константы `INTER_FAMILY` или `MONO_FAMILY` на семейство нового шрифта (имя как видит Windows).
+To use a different font:
+1. Put the .ttf into `app/assets/fonts/`.
+2. Open [app/fonts.py](app/fonts.py).
+3. Add the file name to the `FONT_FILES` list.
+4. Change `INTER_FAMILY` or `MONO_FAMILY` to the new font's family name (as Windows shows it).
 
-Имя семейства шрифта можно посмотреть в свойствах файла .ttf (правый клик → Properties → Details).
+The family name is in the .ttf file's properties (right-click → Properties → Details).
 
-### Где лежат иконки
+### Icons
 
-[app/assets/icons/](app/assets/icons/) — PNG @2x. Их **не редактируют вручную** — генерируются скриптом из inline-SVG-источников:
+[app/assets/icons/](app/assets/icons/) holds PNG @2x files. They are **not edited by hand** — a script generates them from inline SVG sources:
 
-- **UI-иконки** (play, pause, stop, check, plus, settings, paperclip, upload, close, expand, chevron-right, chevron-down): источник в [app/assets/_build_icons.py](app/assets/_build_icons.py). Чтобы изменить или добавить иконку, отредактируй SVG-path внутри этого файла, потом запусти:
+- **UI icons** (play, pause, stop, check, plus, settings, paperclip, upload, close, expand, chevron-right, chevron-down): the source is in [app/assets/_build_icons.py](app/assets/_build_icons.py). To change or add an icon, edit the SVG path in that file, then run:
 
   ```cmd
   python app/assets/_build_icons.py
   ```
 
-- **Иконка приложения** (которую видно в .exe и в заголовках окон): источник [Icon.svg](Icon.svg) в корне репозитория. Изменил SVG — запусти:
+- **Application icon** (shown on the .exe, in window title bars and in the tray): the source is [Icon.svg](Icon.svg) in the repository root. After changing the SVG, run:
 
   ```cmd
   python app/assets/_build_app_icon.py
   ```
 
-  Результат: `app/assets/icon.ico` обновится. После этого пересобери .exe через `build.bat`.
+  This updates `app/assets/icon.ico`. Then rebuild with `build.bat`.
 
-### Что НЕ нужно делать
+### What NOT to do
 
-- Не трогать файлы в `app/widgets/` или `app/windows/` — там логика и компоновка, к ним стучимся через токены, не наоборот.
-- Не редактировать PNG-иконки в графическом редакторе — они перезапишутся при следующем запуске `_build_icons.py`. Меняй SVG-источник.
-- Не редактировать `app/assets/icon.ico` напрямую — генерируется из `Icon.svg`.
+- Do not edit files in `app/widgets/` or `app/windows/` — they hold logic and layout; they are reached through the tokens, not the other way round.
+- Do not edit the PNG icons in a graphics editor — the next run of `_build_icons.py` overwrites them. Change the SVG source.
+- Do not edit `app/assets/icon.ico` directly — it is generated from `Icon.svg`.
 
-### Если нужна помощь
+### If you need help
 
-Все цветовые токены, размеры и состояния зафиксированы в [DESIGN_BRIEF.md](DESIGN_BRIEF.md) v3 — это была спецификация на текущий редизайн. Можно использовать как основу для новой темы, заменяя только `§5 Дизайн-токены`.
+All colour tokens, sizes and states are recorded in [DESIGN_BRIEF.md](DESIGN_BRIEF.md) v3 — the specification for the current redesign. It can serve as the basis for a new theme: replace only `§5 Design tokens`.
 
-## Где живут данные пользователя
+## Third-party components
 
-Собранное приложение хранит всё в `%APPDATA%\FocusApp\` (вставьте этот путь в адресную строку Проводника):
+The installer bundles these components, each under its own licence:
 
-- **`focus_tasks.json`** — все задачи, настройки, дневная статистика. Один файл, можно резервно копировать.
-- **`focus_tasks.json.bak`** — копия с прошлого успешного запуска.
-- **`focus_images\`** — картинки, прикреплённые к задачам.
-- **`focus.log`** — журнал ошибок.
+| Component | Licence |
+|---|---|
+| [Qt 6](https://www.qt.io/) and [PySide6](https://doc.qt.io/qtforpython-6/) | LGPL v3 |
+| [Python](https://www.python.org/) | PSF License |
+| [Inter](https://github.com/rsms/inter) font | SIL Open Font License 1.1 |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) font | SIL Open Font License 1.1 |
 
-Папка не зависит от того, где лежит `.exe`: его можно пересобирать, перемещать и удалять `dist/` без потери данных.
+## Version history
 
-**Переезд со старых версий.** Раньше данные лежали рядом с `.exe`. При первом запуске новая версия сама копирует оттуда `focus_tasks.json` и `focus_images\` в `%APPDATA%\FocusApp\`; старые файлы остаются на месте как резервная копия, приложение их больше не читает.
-
-При работе через `python -m app.main` (режим разработки) данные создаются в корне репо.
-
-## История версий
-
-- **v2** (текущая) — PySide6, новый дизайн-язык Gunmetal, расширенный функционал (paused-state, footer со streak, FocusWindow поверх всех).
-- **v1** — CustomTkinter (см. [legacy/focus_app.py](legacy/focus_app.py)). Простой UI, упёрлись в потолок производительности тулкита, отсюда переезд.
+- **v2.1** (current) — system tray, single instance, installer; data moved to `%APPDATA%\FocusApp` with atomic saves and backups; rename crash and long-title layout fixed.
+- **v2** — PySide6, the Gunmetal design language, extended functionality (paused state, footer with streak, always-on-top FocusWindow).
+- **v1** — CustomTkinter (see [legacy/focus_app.py](legacy/focus_app.py)). A simple UI that hit the toolkit's performance ceiling, hence the move.

@@ -52,6 +52,23 @@ def _instance_key() -> str:
     return f"FocusApp-{user}" + ("" if is_frozen() else "-dev")
 
 
+# Must match AppMutex in installer/FocusApp.iss.
+APP_MUTEX = "FocusAppRunningMutex"
+
+
+def _hold_app_mutex():
+    """Create the named mutex the installer looks for.
+
+    Setup and uninstall check it to ask the user to quit Focus first — a
+    copy hidden in the tray would otherwise keep the program files locked.
+    Windows releases it when the process ends.
+    """
+    if not is_frozen() or sys.platform != "win32":
+        return None
+    import ctypes
+    return ctypes.windll.kernel32.CreateMutexW(None, False, APP_MUTEX)
+
+
 def _activate_running_instance(key: str) -> bool:
     """Ask an already running copy to show its window. True if one answered."""
     sock = QLocalSocket()
@@ -67,6 +84,7 @@ def _activate_running_instance(key: str) -> bool:
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Focus App")
+    app_mutex = _hold_app_mutex()  # noqa: F841 — held for the process lifetime
 
     # With the window hidden in the tray, launching the .exe again must bring
     # that window back — two copies would overwrite each other's data file.
@@ -102,9 +120,15 @@ def main() -> int:
     app.commitDataRequest.connect(lambda *_: win.prepare_for_session_end())
     app.aboutToQuit.connect(win.flush)
 
-    win.show()
+    # "--minimized" is how the autostart entry launches us: straight into the
+    # tray. Without a tray there would be no way to reach a hidden window.
+    start_hidden = "--minimized" in sys.argv[1:] and win.has_tray
     if store.load_warning:
         log.warning(store.load_warning)
+        start_hidden = False
+    if not start_hidden:
+        win.show()
+    if store.load_warning:
         QMessageBox.warning(win, "Focus", store.load_warning)
     return app.exec()
 

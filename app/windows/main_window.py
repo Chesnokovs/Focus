@@ -675,6 +675,10 @@ class MainWindow(QMainWindow):
         tray.show()
         self._tray = tray
 
+    @property
+    def has_tray(self) -> bool:
+        return self._tray is not None
+
     def _on_tray_activated(self, reason) -> None:
         if reason in (QSystemTrayIcon.ActivationReason.Trigger,
                       QSystemTrayIcon.ActivationReason.DoubleClick):

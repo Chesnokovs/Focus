@@ -1,72 +1,72 @@
-# ТЗ: редизайн Focus App (v3 — финальный scope)
+# Design Brief: Focus App Redesign (v3 — final scope)
 
-> **Что изменилось в v3.** Прошёл раунд с дизайнером, получен полный пакет (`Design/Focus App/`). Дизайнер вышел за рамки чисто визуального редизайна и предложил расширение функционала — после обсуждения большая часть принята. Финальная палитра — **Gunmetal direction**. Зафиксированы:
-> - Overlay 380×56 (single-row), не 500×210.
-> - Новый state: **paused** для задач + кнопка **Resume**.
-> - **Footer** в MainWindow со Streak / Today-total.
-> - **SettingsPopover** заменяет три старые строки настроек.
-> - Темы заложены как **плейсхолдер** (структура тем в коде), но пока активна только Gunmetal.
-> - MainWindow — **системный title bar** (custom только в FocusWindow).
-> - Add task — кнопка `+ ADD TASK` остаётся (не Enter-капсула).
+> **What changed in v3.** A round with the designer has been completed and the full package received (`Design/Focus App/`). The designer went beyond a purely visual redesign and proposed extended functionality — after discussion, most of it was accepted. The final palette is the **Gunmetal direction**. Locked in:
+> - Overlay 380×56 (single-row), not 500×210.
+> - New state: **paused** for tasks + a **Resume** button.
+> - **Footer** in MainWindow with Streak / Today-total.
+> - **SettingsPopover** replaces the three old settings rows.
+> - Themes are included as a **placeholder** (theme structure in the code), but only Gunmetal is active for now.
+> - MainWindow — **system title bar** (custom only in FocusWindow).
+> - Add task — the `+ ADD TASK` button stays (not an Enter capsule).
 
-## 0. Источники правды
+## 0. Sources of truth
 
-| Что | Где |
+| What | Where |
 |---|---|
-| Финальная визуальная спека | `Design/Focus App/Focus App Spec.html` (читаемый) или `… (standalone).html` (упакованный) |
-| Эталонная реализация — JSX, можно открывать в браузере | `Design/Focus App/Focus App.html` |
-| Финальные токены | `Design/Focus App/spec/tokens.jsx` |
-| Эталонный MainWindow (компонент) | `Design/Focus App/components/MainWindow.jsx` |
-| Эталонный FocusOverlay (3 варианта) | `Design/Focus App/components/FocusOverlay.jsx` |
-| SVG-иконки (источники) | `Design/Focus App/components/Icon.jsx` |
+| Final visual spec | `Design/Focus App/Focus App Spec.html` (readable) or `… (standalone).html` (bundled) |
+| Reference implementation — JSX, can be opened in a browser | `Design/Focus App/Focus App.html` |
+| Final tokens | `Design/Focus App/spec/tokens.jsx` |
+| Reference MainWindow (component) | `Design/Focus App/components/MainWindow.jsx` |
+| Reference FocusOverlay (3 variants) | `Design/Focus App/components/FocusOverlay.jsx` |
+| SVG icons (sources) | `Design/Focus App/components/Icon.jsx` |
 
-При расхождениях между этим документом и эталонной реализацией — **код дизайнера приоритетнее**.
+In case of discrepancies between this document and the reference implementation — **the designer's code takes precedence**.
 
-## 1. О продукте
+## 1. About the product
 
-Десктопное Windows-приложение для удержания фокуса на одной задаче. Два режима:
+A Windows desktop application for staying focused on a single task. Two modes:
 
-- **Setup** — главное окно: список задач, настройки, статистика дня.
-- **Focus** — плавающее окно поверх всех окон: компактная плашка с задачей и таймером.
+- **Setup** — the main window: task list, settings, daily statistics.
+- **Focus** — a floating window on top of all other windows: a compact bar with the task and a timer.
 
-Стек: Python + CustomTkinter.
+Stack: Python + CustomTkinter.
 
-## 2. Цели редизайна
+## 2. Redesign goals
 
-- Современный, минималистичный, неагрессивный тёмный UI (Gunmetal direction).
-- Чёткая визуальная иерархия running / paused / idle / done.
-- Финальный дизайн от дизайнера утверждён, код адаптируем под него.
-- Расширение функционала: paused-state, footer со статистикой, settings popover.
+- A modern, minimalist, non-aggressive dark UI (Gunmetal direction).
+- A clear visual hierarchy of running / paused / idle / done.
+- The designer's final design is approved; we adapt the code to it.
+- Extended functionality: paused state, footer with statistics, settings popover.
 
-## 3. Окна и размеры
+## 3. Windows and sizes
 
-| Окно | Размер | Frame | Тень | Drag |
+| Window | Size | Frame | Shadow | Drag |
 |---|---|---|---|---|
-| `MainWindow` | 720 × 650, min 600 × 400 | **системный** | системная | системный |
-| `FocusWindow` | **380 × 56** (single-row) | без рамки | через Win32 DWM | вручную (как сейчас) |
-| `SettingsPopover` | ~280 × auto | borderless `Toplevel`, поверх MainWindow | DWM-тень | нет |
-| `ImageViewer` | под размер изображения | стандартный | системная | системный |
+| `MainWindow` | 720 × 650, min 600 × 400 | **system** | system | system |
+| `FocusWindow` | **380 × 56** (single-row) | frameless | via Win32 DWM | manual (as now) |
+| `SettingsPopover` | ~280 × auto | borderless `Toplevel`, on top of MainWindow | DWM shadow | none |
+| `ImageViewer` | sized to the image | standard | system | system |
 
-## 4. Карта экранов и компонентов
+## 4. Map of screens and components
 
 ### 4.1 MainWindow (720 × 650)
 
 ```
-MainWindow                            (системный title bar Windows)
+MainWindow                            (Windows system title bar)
 ├── Header                            22 px X-padding
 │   ├── AppTitleLabel                 — "Focus" Inter 18 Bold
-│   ├── ActiveCountBadge              — "{N} active" в Pill (S_BG2)
+│   ├── ActiveCountBadge              — "{N} active" in a Pill (S_BG2)
 │   ├── (spacer)
-│   ├── PomodoroPills                 — "Work 25m | Break 5m" в pill-группе
-│   ├── SettingsBtn                   — иконка ⚙, открывает SettingsPopover
-│   └── HotkeysBtn                    — иконка ⌘, открывает hotkeys-tooltip
-├── (no separator — Header нижняя граница 1px S_BORDER)
+│   ├── PomodoroPills                 — "Work 25m | Break 5m" in a pill group
+│   ├── SettingsBtn                   — ⚙ icon, opens SettingsPopover
+│   └── HotkeysBtn                    — ⌘ icon, opens the hotkeys tooltip
+├── (no separator — Header bottom border 1px S_BORDER)
 ├── AddTaskBar                        14 px Y, height 42
 │   ├── PlusIcon
 │   ├── NewTaskEntry                  placeholder "Add a task and press Enter…"
 │   └── AddTaskBtn                    "+ ADD TASK" (accent)
 ├── TaskList (scrollable)             gap 6, padding 4/14/18
-│   └── TaskCard × N                  (см. 4.2)
+│   └── TaskCard × N                  (see 4.2)
 └── Footer                            28 px, S_FOOTER
     ├── RunningDot + "Focusing · {task}"
     ├── (spacer)
@@ -77,40 +77,40 @@ MainWindow                            (системный title bar Windows)
 
 ### 4.2 TaskCard
 
-**Состояния** (ровно 4 для state + флаги expanded / hover):
+**States** (exactly 4 for state + the expanded / hover flags):
 
-- `idle` — серый круг-плейсхолдер
-- `running` — пульсирующая красная точка в кольце; в заголовке бейдж `LIVE`
-- `paused` — жёлтый круг с двумя вертикальными чёрточками
-- `done` — зелёный круг с галочкой; заголовок зачёркнут, цвет S_DIM
+- `idle` — grey placeholder circle
+- `running` — pulsing red dot inside a ring; a `LIVE` badge in the header
+- `paused` — yellow circle with two vertical bars
+- `done` — green circle with a check mark; the title is struck through, colour S_DIM
 
-**Кнопки в зависимости от state:**
+**Buttons depending on state:**
 
-| State | Кнопки |
+| State | Buttons |
 |---|---|
 | `running` | `Pause` (warn), `Stop` (stop) |
-| `paused` | `Resume` (primary, иконка play) |
-| `idle` | `Start` (primary, иконка play) |
-| любой не-`done` | `Done` (ghost, иконка check) |
-| `done` | inline-метка «✓ Done» (S_GREEN), без действий |
+| `paused` | `Resume` (primary, play icon) |
+| `idle` | `Start` (primary, play icon) |
+| any non-`done` | `Done` (ghost, check icon) |
+| `done` | inline label "✓ Done" (S_GREEN), no actions |
 
-**Структура:**
+**Structure:**
 
 ```
 TaskCard
 ├── Header row (10/12 padding, gap 10)
-│   ├── ChevronIcon (right или down)
-│   ├── StateIndicator (16×16 круг в зависимости от state)
+│   ├── ChevronIcon (right or down)
+│   ├── StateIndicator (16×16 circle depending on state)
 │   ├── TaskNameLabel (Inter 13)
-│   ├── LiveBadge   (только running, S_ACCENT в S_ACCENT_SOFT)
-│   ├── PaperclipIcon (если есть вложение)
+│   ├── LiveBadge   (running only, S_ACCENT on S_ACCENT_SOFT)
+│   ├── PaperclipIcon (if there is an attachment)
 │   ├── (spacer)
 │   ├── TimeLabel (JetBrains Mono 12, tabular-nums)
-│   └── ActionButtons (см. таблицу выше)
-└── ExpandedPanel (только если expanded и running — по дизайну)
+│   └── ActionButtons (see the table above)
+└── ExpandedPanel (only if expanded and running — per the design)
     ├── DividerLine 1px
     ├── DescriptionText (12pt, S_TEXT_MUTED)
-    ├── AttachmentRow (если есть): 44×44 thumbnail + filename + size + age
+    ├── AttachmentRow (if present): 44×44 thumbnail + filename + size + age
     └── HintsRow:
         ├── Kbd "Ctrl + V" paste
         ├── Icon "upload" + "drop files"
@@ -118,35 +118,35 @@ TaskCard
         └── "Total {time}" (JetBrains Mono)
 ```
 
-### 4.3 FocusWindow — 380 × 56 (вариант C)
+### 4.3 FocusWindow — 380 × 56 (variant C)
 
 ```
 FocusWindow                          frameless, R=12, DWM-shadow, draggable
 ├── BG                               linear-gradient #DC2626 → #B91C1C (vertical)
-├── InsetHighlight                   1px белая линия α12% сверху
+├── InsetHighlight                   1px white line α12% at the top
 ├── CircularRing 38×38 (left)
 │   ├── TrackArc                     stroke α20%, width 2.5
-│   └── ProgressArc                  stroke #FFF, width 2.5, начало с 12 ч против часовой
+│   └── ProgressArc                  stroke #FFF, width 2.5, starts at 12 o'clock, counter-clockwise
 ├── Center column
 │   ├── PhaseLabel                   "WORK" / "BREAK", 9pt 700, letter-spacing 1.4
-│   └── TimerLabel                   "23:43" Inter 22 Bold (НЕ JetBrains Mono — у дизайнера в этом варианте Inter с tabular-nums; в нашем коде заменим на JetBrains Mono)
+│   └── TimerLabel                   "23:43" Inter 22 Bold (NOT JetBrains Mono — in this variant the designer uses Inter with tabular-nums; in our code we will replace it with JetBrains Mono)
 └── ButtonGroup (right)
     ├── PauseBtn                     26×26, white α14
     ├── DoneBtn                      26×26, white α14
     └── StopBtn                      26×26, white α14
 ```
 
-**Состояния:**
+**States:**
 
 - WORK / running (default)
-- WORK / paused — точка-индикатор тускнеет до 40%, в timer-string появляется визуальный индикатор паузы (формат уточним при имплементации)
-- BREAK — таймер и progress-arc → S_GREEN
-- Flash при смене фазы — bg → белый, текст → красный, 6× по 250 мс
-- Drag — opacity → 0.8 во время перетаскивания
+- WORK / paused — the indicator dot dims to 40%, a visual pause indicator appears in the timer string (the format will be settled during implementation)
+- BREAK — timer and progress arc → S_GREEN
+- Flash on phase change — bg → white, text → red, 6× at 250 ms each
+- Drag — opacity → 0.8 while dragging
 
 ### 4.4 SettingsPopover
 
-Открывается по клику на ⚙. Borderless Toplevel ~280px ширины, привязан под header справа, DWM-тень. Закрывается по click-outside / Esc.
+Opens on a click on ⚙. A borderless Toplevel ~280px wide, anchored under the header on the right, DWM shadow. Closes on click-outside / Esc.
 
 ```
 SettingsPopover
@@ -162,53 +162,53 @@ SettingsPopover
 
 ### 4.5 ImageViewer
 
-Без изменений — Toplevel, чёрный фон `#111111`, закрытие по Esc / клику.
+Unchanged — a Toplevel, black background `#111111`, closes on Esc / click.
 
-## 5. Дизайн-токены (финал от дизайнера)
+## 5. Design tokens (final, from the designer)
 
-Источник: `Design/Focus App/spec/tokens.jsx`. Имена матчатся с исходной палитрой `S_*` плюс 3 новых.
+Source: `Design/Focus App/spec/tokens.jsx`. The names match the original `S_*` palette, plus 3 new ones.
 
 ```python
 TOKENS = {
-    # Исходные имена (новые hex значения)
+    # Original names (new hex values)
     "S_BG":               "#1F2731",  # app background / chrome bar
     "S_FG":               "#DBE3EC",  # primary text
-    "S_ACCENT":           "#EF4444",  # accent / running — RED, не серый
+    "S_ACCENT":           "#EF4444",  # accent / running — RED, not grey
     "S_ACCENT_HOVER":     "#F87171",
     "S_SURFACE":          "#33404E",  # cards, inputs
-    "S_ACTIVE":           "#3D4B5B",  # активная карточка (база под градиент)
+    "S_ACTIVE":           "#3D4B5B",  # active card (base under the gradient)
     "S_DIM":              "#7B8A9D",
     "S_GREEN":            "#34D399",  # START / break / done
     "S_RED":              "#EF4444",  # STOP / DELETE
     "S_YELLOW":           "#FBBF24",  # DONE / paused
     "URL_LINK":           "#7DD3FC",
     "BTN_TEXT_ON_ACCENT": "#0F1620",
-    "DEFAULT_FOCUS_BG":   "#DC2626",  # дефолтный красный overlay
+    "DEFAULT_FOCUS_BG":   "#DC2626",  # default red overlay
     "DEFAULT_FOCUS_FG":   "#FFFFFF",
 
-    # Новые
+    # New
     "S_BG_DEEP":          "#161D26",  # title bar / footer
-    "S_BORDER":           "#2A3540",  # 1px рамки
+    "S_BORDER":           "#2A3540",  # 1px borders
     "S_TEXT_MUTED":       "#94A3B3",  # secondary text
 
-    # Прозрачные кнопки overlay (white α на красном градиенте)
+    # Translucent overlay buttons (white α on the red gradient)
     "S_OVERLAY_BTN":        "#FFFFFF24",  # 14%
     "S_OVERLAY_BTN_HOVER":  "#FFFFFF38",  # 22%
     "S_OVERLAY_BTN_BORDER": "#FFFFFF2E",  # 18%
 }
 ```
 
-**Шрифты:**
+**Fonts:**
 - **Inter** (Regular / Medium / SemiBold / Bold) — UI.
-- **JetBrains Mono** (Regular / Medium / Bold) — все числовые лейблы. Использование расписано в `tokens.jsx → TYPOGRAPHY.monoUsage`.
+- **JetBrains Mono** (Regular / Medium / Bold) — all numeric labels. Usage is detailed in `tokens.jsx → TYPOGRAPHY.monoUsage`.
 
-**Радиусы / spacing:**
-- Window: 8 px (но MainWindow — системный)
+**Radii / spacing:**
+- Window: 8 px (but MainWindow is system-framed)
 - Card: 10 px
 - Input: 8 px
 - Button: 6 px
 - Badge / Kbd: 3–4 px
-- FocusWindow overlay: 12 px (был 18 в v2 — обновлено для нового размера 380×56)
+- FocusWindow overlay: 12 px (was 18 in v2 — updated for the new 380×56 size)
 - Window padding X: 22 px
 - Card padding: 10 / 12 px (Y / X)
 - Card stack gap: 6 px
@@ -216,40 +216,40 @@ TOKENS = {
 - Input height: 40–42 px
 - Footer height: 28 px
 
-## 6. Темы (плейсхолдер)
+## 6. Themes (placeholder)
 
-Сейчас активна только **Gunmetal**. В коде закладываем структуру — палитра как dict, ключ темы как параметр. Это не выкидывает в UI селектор тем; просто `theme = "gunmetal"` в одном месте кода. Когда понадобится — добавим Silver / Pewter / Paper за час, потому что дизайнер их уже сделал.
+Only **Gunmetal** is active right now. In the code we lay down the structure — the palette as a dict, the theme key as a parameter. This does not surface a theme selector in the UI; it is simply `theme = "gunmetal"` in one place in the code. When needed, we will add Silver / Pewter / Paper within an hour, because the designer has already made them.
 
 ```python
 THEMES = {
-    "gunmetal": { …все токены выше… },
-    # "silver": {...},   # см. Design/Focus App/components/MainWindow.jsx
+    "gunmetal": { …all tokens above… },
+    # "silver": {...},   # see Design/Focus App/components/MainWindow.jsx
     # "pewter":  {...},
 }
 ACTIVE_THEME = "gunmetal"
 ```
 
-## 7. Расширение функционала (новое в v3)
+## 7. Extended functionality (new in v3)
 
-### 7.1 Paused state для задач
+### 7.1 Paused state for tasks
 
-Поле в `Task`: `paused: bool = False`. Состояние **отдельно от** `done` и `time_spent`. Переходы:
+A field in `Task`: `paused: bool = False`. The state is **separate from** `done` and `time_spent`. Transitions:
 
 - `idle` → `running` (Start)
 - `running` → `paused` (Pause)
 - `paused` → `running` (Resume)
-- любое → `done` (Done)
+- any → `done` (Done)
 
-Только одна задача может быть `running` или `paused` одновременно (как и сейчас с running). При паузе таймер замораживается, `time_spent` не растёт.
+Only one task can be `running` or `paused` at a time (as is already the case with running). On pause the timer freezes and `time_spent` does not grow.
 
 ### 7.2 Footer: Today total + Streak
 
-Требует расширения хранения данных:
+Requires extending the data storage:
 
-- **Today total** — суммарное время фокуса за календарный день (по локальному времени). Формат: «Today · 2h 41m».
-- **Streak** — количество последовательных дней, в каждом из которых была хотя бы одна работающая Pomodoro-сессия (≥ 1 сек running). Формат: «Streak 7d». Сбрасывается, если пропущен полный день.
+- **Today total** — total focus time for the calendar day (in local time). Format: "Today · 2h 41m".
+- **Streak** — the number of consecutive days, each of which had at least one running Pomodoro session (≥ 1 s of running). Format: "Streak 7d". Resets if a full day is missed.
 
-**Структура хранения** (расширяем `focus_tasks.json`):
+**Storage structure** (we extend `focus_tasks.json`):
 
 ```json
 {
@@ -257,7 +257,7 @@ ACTIVE_THEME = "gunmetal"
   "settings": {...},
   "stats": {
     "daily": {
-      "2026-05-06": 9660,       // секунд за день
+      "2026-05-06": 9660,       // seconds per day
       "2026-05-05": 12420,
       ...
     },
@@ -266,86 +266,86 @@ ACTIVE_THEME = "gunmetal"
 }
 ```
 
-Streak вычисляется по `daily` ключам — берём отсортированные даты, идём с сегодняшнего/последнего вглубь, считаем последовательные.
+Streak is computed from the `daily` keys — we take the sorted dates, walk backwards from today / the last one, and count the consecutive ones.
 
-### 7.3 SettingsPopover — что переехало
+### 7.3 SettingsPopover — what moved
 
-Из старого header удаляются: opacity slider, work/break entries, focus bg/fg color buttons. Всё это уезжает в SettingsPopover. Hotkeys hint тоже уезжает в popover (как Shortcuts list).
+Removed from the old header: opacity slider, work/break entries, focus bg/fg color buttons. All of this moves into SettingsPopover. The hotkeys hint also moves into the popover (as the Shortcuts list).
 
-## 8. Engineering scope: что делаем / упрощаем / не делаем
+## 8. Engineering scope: what we do / simplify / don't do
 
-### 8.1 Делаем
+### 8.1 What we do
 
-| Эффект | Реализация |
+| Effect | Implementation |
 |---|---|
-| Drop-shadow FocusWindow (380×56) | Win32 DWM, fallback на PNG-shadow |
-| Drop-shadow SettingsPopover | то же |
-| Градиент overlay (#DC2626 → #B91C1C) | Canvas вертикальный градиент |
-| Inset highlight 1px сверху overlay | 3 строки на Canvas |
-| Круглая прогресс-дуга 38×38 | Canvas `create_arc`, обновление 1×/сек |
-| Smooth pulse running-точки | Canvas `itemconfig(fill=…)` ~30 fps, цикл 1.4 с |
-| Glow на running-точке | пре-рендеренный PNG halo через CTkImage |
-| Footer глоу-точка | то же (или просто яркий красный без glow — на flat обоях нормально) |
-| Шрифты Inter + JetBrains Mono | бандлим `.ttf`, регистрируем `AddFontResourceExW(FR_PRIVATE)` |
-| Иконки PNG @2x | через `CTkImage`, исходники — SVG из `Icon.jsx` |
-| SettingsPopover как Toplevel | borderless + click-outside-to-close + DWM-тень |
-| Inline-редактирование Name | borderless CTkEntry + underline на focus |
-| Kbd-капсулы | CTkLabel с border + JetBrains Mono |
-| Active count badge | просто счётчик `len([t for t in tasks if not t.done])` |
-| Paused state | новое поле + новый StateIndicator + Resume-кнопка |
-| Today total / Streak | новый блок данных в JSON, утилиты подсчёта |
-| Темы как плейсхолдер | dict тем, активная — Gunmetal |
+| FocusWindow drop shadow (380×56) | Win32 DWM, fallback to a PNG shadow |
+| SettingsPopover drop shadow | same |
+| Overlay gradient (#DC2626 → #B91C1C) | Canvas vertical gradient |
+| 1px inset highlight at the top of the overlay | 3 lines of code on Canvas |
+| Circular progress arc 38×38 | Canvas `create_arc`, updated 1×/s |
+| Smooth pulse of the running dot | Canvas `itemconfig(fill=…)` ~30 fps, 1.4 s cycle |
+| Glow on the running dot | pre-rendered PNG halo via CTkImage |
+| Footer glow dot | same (or just a bright red without glow — fine on a flat wallpaper) |
+| Inter + JetBrains Mono fonts | bundle the `.ttf` files, register with `AddFontResourceExW(FR_PRIVATE)` |
+| PNG @2x icons | via `CTkImage`, sources — the SVGs from `Icon.jsx` |
+| SettingsPopover as a Toplevel | borderless + click-outside-to-close + DWM shadow |
+| Inline editing of Name | borderless CTkEntry + underline on focus |
+| Kbd capsules | CTkLabel with border + JetBrains Mono |
+| Active count badge | just a counter `len([t for t in tasks if not t.done])` |
+| Paused state | new field + new StateIndicator + Resume button |
+| Today total / Streak | new data block in the JSON, calculation utilities |
+| Themes as a placeholder | dict of themes, the active one — Gunmetal |
 
-### 8.2 Не делаем
+### 8.2 What we don't do
 
-| Что | Почему |
+| What | Why |
 |---|---|
-| Custom title bar в MainWindow | Системный сохраняет snap к краям, double-click→max, Win+стрелка |
-| Backdrop-blur кнопок overlay | Tk-потолок. Используем `S_OVERLAY_BTN` α14 на собственном градиенте — этого хватает |
-| OpenType `tabular-nums` для Inter | Tk не умеет. Все числовые → JetBrains Mono |
-| Pomodoro counter «1/4» | По решению — оставляем простое work/break без серий |
-| UI-переключатель тем | Только структура в коде; селектор позже |
-| Add task через Enter-капсулу (без кнопки) | Кнопка «+ ADD TASK» остаётся |
+| Custom title bar in MainWindow | The system one preserves snap to edges, double-click→max, Win+arrow |
+| Backdrop blur on the overlay buttons | Tk ceiling. We use `S_OVERLAY_BTN` α14 on our own gradient — that is enough |
+| OpenType `tabular-nums` for Inter | Tk cannot do it. All numeric text → JetBrains Mono |
+| Pomodoro counter "1/4" | By decision — we keep a simple work/break without series |
+| UI theme switcher | Only the structure in the code; the selector comes later |
+| Add task via an Enter capsule (no button) | The "+ ADD TASK" button stays |
 
-### 8.3 Упрощаем
+### 8.3 What we simplify
 
-| Что | Почему |
+| What | Why |
 |---|---|
-| Slider — стандартный CTkSlider с тюнингом | Кастомный Canvas-slider не оправдан |
+| Slider — the standard CTkSlider with tuning | A custom Canvas slider is not justified |
 
-### 8.4 Технические факты
+### 8.4 Technical facts
 
-- **CustomTkinter поверх Tkinter.** Нет CSS, нет SVG, нет DOM-style анимаций.
-- Скругления — целое число px, не per-corner.
-- Прозрачность — на уровне окна (`-alpha`).
-- Градиенты — только нарисованные на Canvas (overlay, активная карточка).
-- `colorchooser` — системный диалог Windows.
-- Анимации на Canvas (цвет / arc) плавны; layout-анимации — ступенчаты.
+- **CustomTkinter on top of Tkinter.** No CSS, no SVG, no DOM-style animations.
+- Corner radii — an integer number of px, not per-corner.
+- Transparency — at the window level (`-alpha`).
+- Gradients — only drawn on a Canvas (overlay, active card).
+- `colorchooser` — the Windows system dialog.
+- Animations on a Canvas (colour / arc) are smooth; layout animations are stepped.
 
-## 9. Порядок работ
+## 9. Order of work
 
-1. **Фундамент.** Inter + JetBrains Mono bootstrap (`AddFontResourceExW`) + `THEMES` dict + конвертация SVG-иконок в PNG @2x + `CTkImage` обёртка.
-2. **Токены и palette в MainWindow.** Применить новые `S_*` к существующему layout (без изменения структуры). Сразу видно, как смотрится Gunmetal.
-3. **MainWindow header / footer.** Active count badge, footer со streak / today (читает из stats; пока ноль если нет данных).
-4. **Расширение модели данных.** Поле `paused` в Task, блок `stats` в JSON, утилиты `today_total()` / `streak()`. Миграция старого JSON (без `stats` — добавляем пустой).
-5. **TaskCard редизайн.** Новые StateIndicator, Live badge, paused-state, Resume-кнопка, новые кнопки в действиях, expanded-секция по новой схеме.
-6. **GradientCard для активной задачи + smooth pulse + halo PNG.**
-7. **FocusWindow → 380×56.** Новая геометрия, круглая дуга, новые кнопки, inset highlight.
-8. **DWM-тень** для FocusWindow и SettingsPopover.
-9. **SettingsPopover.** Новый borderless Toplevel, переезд старых настроек, shortcuts list.
-10. **Кросс-проверка** на финальной геометрии.
+1. **Foundation.** Inter + JetBrains Mono bootstrap (`AddFontResourceExW`) + `THEMES` dict + conversion of the SVG icons to PNG @2x + a `CTkImage` wrapper.
+2. **Tokens and palette in MainWindow.** Apply the new `S_*` to the existing layout (without changing the structure). It is immediately visible how Gunmetal looks.
+3. **MainWindow header / footer.** Active count badge, footer with streak / today (reads from stats; zero for now if there is no data).
+4. **Data model extension.** The `paused` field in Task, the `stats` block in the JSON, the `today_total()` / `streak()` utilities. Migration of the old JSON (no `stats` — we add an empty one).
+5. **TaskCard redesign.** New StateIndicator, Live badge, paused state, Resume button, new buttons in the actions, the expanded section per the new scheme.
+6. **GradientCard for the active task + smooth pulse + halo PNG.**
+7. **FocusWindow → 380×56.** New geometry, circular arc, new buttons, inset highlight.
+8. **DWM shadow** for FocusWindow and SettingsPopover.
+9. **SettingsPopover.** New borderless Toplevel, relocation of the old settings, shortcuts list.
+10. **Cross-check** on the final geometry.
 
-Каждый шаг — отдельный коммит.
+Each step is a separate commit.
 
-## 10. Что нужно от дизайнера
+## 10. What we need from the designer
 
-Только два пункта (всё остальное в пакете уже есть):
+Only two items (everything else is already in the package):
 
 1. **Inter `.ttf`** — Regular / Medium / SemiBold / Bold.
 2. **JetBrains Mono `.ttf`** — Regular / Medium / Bold.
 
-PNG @2x для иконок и halo сгенерируем сами из inline-SVG в `Icon.jsx`.
+We will generate the PNG @2x for the icons and the halo ourselves from the inline SVG in `Icon.jsx`.
 
-## 11. Вне scope
+## 11. Out of scope
 
-Онбординг, мобильная версия, экраны статистики (графики), реалтайм backdrop-blur, кастомный colorchooser, custom title bar, light themes, переключатель тем в UI, Pomodoro серии (1/4 counter).
+Onboarding, a mobile version, statistics screens (charts), real-time backdrop blur, a custom colorchooser, a custom title bar, light themes, a theme switcher in the UI, Pomodoro series (1/4 counter).

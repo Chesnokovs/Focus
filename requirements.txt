@@ -1,3 +1,9 @@
-PySide6>=6.6
-Pillow>=10.0
+# Runtime. "Essentials" has every Qt module the app uses (Core, Gui, Widgets,
+# Network) without the add-ons, which keeps the installer small.
+PySide6-Essentials>=6.6
+
+# Build (build.bat)
 pyinstaller>=6.0
+
+# Only for regenerating icons: app/assets/_build_icons.py, _build_app_icon.py
+Pillow>=10.0
