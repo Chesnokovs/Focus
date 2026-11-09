@@ -3,7 +3,7 @@ echo === Building Focus App (PySide6) ===
 echo.
 
 REM Make sure dependencies are present.
-pip install pyinstaller PySide6 Pillow
+pip install -r requirements.txt
 
 echo.
 echo === Creating executable ===
@@ -24,5 +24,5 @@ echo.
 echo === Done! ===
 echo Executable: dist\FocusApp.exe
 echo.
-echo Data files (focus_tasks.json, focus_images\) live next to the .exe.
+echo User data lives in %%APPDATA%%\FocusApp, not next to the .exe.
 pause

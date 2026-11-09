@@ -5,7 +5,8 @@ DescriptionEdit — multiline text editor that intercepts:
   • URL highlighting — http(s) links are coloured + underlined.
   • Ctrl+Click on a URL opens it in the default browser.
 
-Plain text paste behaves normally.
+Plain text paste behaves normally; a clipboard holding both text and a
+picture (Excel, Word) pastes as text.
 """
 from __future__ import annotations
 
@@ -110,15 +111,21 @@ class DescriptionEdit(QPlainTextEdit):
         return None
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        # Pointing-hand cursor when over a URL — plain hover, no modifier needed.
-        if self._url_at(event.position().toPoint()):
-            self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
-        else:
-            self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
+        # Links open on Ctrl+Click, so a plain click can still put the caret
+        # inside a URL to edit it. The hand cursor shows only while Ctrl is held.
+        over_url = bool(self._url_at(event.position().toPoint()))
+        ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        self.viewport().setCursor(
+            Qt.CursorShape.PointingHandCursor if over_url and ctrl
+            else Qt.CursorShape.IBeamCursor
+        )
+        self.viewport().setToolTip("Ctrl+Click to open link" if over_url else "")
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
+        if (event.button() == Qt.MouseButton.LeftButton
+                and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                and not self.textCursor().hasSelection()):
             url = self._url_at(event.position().toPoint())
             if url:
                 webbrowser.open(url)
@@ -131,17 +138,34 @@ class DescriptionEdit(QPlainTextEdit):
     # QClipboard.image() directly. The MIME-based path can segfault on some
     # clipboard formats when QVariant unwrap is fed into QImage(...).
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.matches(QKeySequence.StandardKey.Paste):
-            clipboard = QApplication.clipboard()
-            img = clipboard.image()
-            if not img.isNull():
-                path = save_clipboard_image(img)
-                if path:
-                    self.imagesAdded.emit([path])
-                    event.accept()
-                    return
-            # No image on clipboard — fall through to normal text paste.
+        if event.matches(QKeySequence.StandardKey.Paste) and self._paste_images():
+            event.accept()
+            return
         super().keyPressEvent(event)
+
+    def _paste_images(self) -> bool:
+        """Attach images from the clipboard. False means: paste as text instead."""
+        clipboard = QApplication.clipboard()
+        mime = clipboard.mimeData()
+        if mime is None:
+            return False
+        # Image files copied in Explorer.
+        paths = collect_image_paths(mime)
+        if paths:
+            self.imagesAdded.emit(paths)
+            return True
+        # Excel, Word and browsers put a rendered picture next to the text;
+        # when there is text, the text is what the user means to paste.
+        if mime.hasText() and mime.text().strip():
+            return False
+        img = clipboard.image()
+        if img.isNull():
+            return False
+        path = save_clipboard_image(img)
+        if not path:
+            return False
+        self.imagesAdded.emit([path])
+        return True
 
     # --- Drag and drop of image files ---
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:

@@ -29,6 +29,7 @@ from app.models import Task
 from app.widgets.state_indicator import StateIndicator
 from app.widgets.action_button import ActionButton
 from app.widgets.description_edit import DescriptionEdit, collect_image_paths
+from app.widgets.elided_label import ElidedLabel
 from app.windows.image_viewer import ImageViewer
 
 
@@ -42,6 +43,28 @@ def format_time(seconds: int) -> str:
     return f"{m:02d}:{s:02d}"
 
 
+THUMB_SIZE = QSize(86, 80)
+# (path, mtime) -> scaled pixmap. A card is rebuilt on every state change, and
+# decoding a full-size photo each time made Pause / Resume visibly lag.
+_thumb_cache: dict[tuple[str, float], QPixmap] = {}
+
+
+def _load_thumbnail(path: str) -> QPixmap:
+    try:
+        key = (path, os.path.getmtime(path))
+    except OSError:
+        return QPixmap()
+    pm = _thumb_cache.get(key)
+    if pm is None:
+        pm = QPixmap(path)
+        if not pm.isNull():
+            pm = pm.scaled(THUMB_SIZE,
+                           Qt.AspectRatioMode.KeepAspectRatio,
+                           Qt.TransformationMode.SmoothTransformation)
+        _thumb_cache[key] = pm
+    return pm
+
+
 class TaskCard(QFrame):
     """Task card with optional expanded panel."""
 
@@ -52,7 +75,8 @@ class TaskCard(QFrame):
     resumeRequested = Signal(str)
     doneRequested   = Signal(str)
     deleteRequested = Signal(str)
-    nameEdited      = Signal(str, str)        # task_id, new_text
+    reopenRequested = Signal(str)
+    nameEdited     = Signal(str, str)        # task_id, new_text
     descriptionEdited = Signal(str, str)      # task_id, new_text
     imageAddRequested = Signal(str, list)     # task_id, paths
     imageRemoveRequested = Signal(str, int)   # task_id, index
@@ -64,6 +88,12 @@ class TaskCard(QFrame):
         self._is_active = is_active
         self._is_expanded = is_expanded
         self._theme = theme or themes.active_theme()
+        self._rebuilding = False
+        # Child widgets other methods reach into; None while not on screen.
+        self._time_lbl: Optional[QLabel] = None
+        self._total_lbl: Optional[QLabel] = None
+        self._name_edit: Optional[QLineEdit] = None
+        self._desc_edit: Optional[DescriptionEdit] = None
         # Allow dropping image files anywhere on the card while expanded.
         self.setAcceptDrops(True)
         self._build()
@@ -73,10 +103,19 @@ class TaskCard(QFrame):
         return self._task.id
 
     def set_displayed_time(self, seconds: int) -> None:
-        """Update only the time label (used by the running timer — no rebuild)."""
-        self._task.time_spent = seconds
-        if getattr(self, "_time_lbl", None) is not None:
-            self._time_lbl.setText(format_time(seconds))
+        """Update only the time labels (used by the running timer — no rebuild)."""
+        text = format_time(seconds)
+        if self._time_lbl is not None:
+            self._time_lbl.setText(text)
+        if self._total_lbl is not None:
+            self._total_lbl.setText(text)
+
+    def commit_edits(self) -> None:
+        """Push any unsaved name/description text out through the edit signals."""
+        if self._name_edit is not None:
+            self._on_name_finished()
+        if self._desc_edit is not None:
+            self._on_description_changed()
 
     def update_state(self, *, task: Optional[Task] = None,
                      is_active: Optional[bool] = None,
@@ -87,11 +126,39 @@ class TaskCard(QFrame):
             self._is_active = is_active
         if is_expanded is not None:
             self._is_expanded = is_expanded
+        if self._rebuilding:
+            # Re-entered from a focus-out fired while the old widgets were
+            # being hidden (e.g. an unsaved rename). The state above is
+            # already updated and the outer call builds from it.
+            return
+        self._rebuilding = True
+        try:
+            self._discard_contents()
+            self._build_contents()
+            self._apply_card_style()
+        finally:
+            self._rebuilding = False
+
+    def _discard_contents(self) -> None:
+        """Drop the current child widgets ahead of a rebuild.
+
+        A rebuild is usually triggered from inside a child's own signal (a
+        button's `clicked`, the name field's `editingFinished`). Destroying
+        that child on the spot leaves Qt running code on a freed object, which
+        crashed on rename — so the old widgets are hidden now and deleted once
+        control is back in the event loop.
+        """
         old = self.layout()
-        if old is not None:
-            QWidget().setLayout(old)
-        self._build_contents()
-        self._apply_card_style()
+        if old is None:
+            return
+        while old.count():
+            widget = old.takeAt(0).widget()
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+        # A widget can't take a new layout while it has one; the old layout is
+        # empty now, so handing it to a throwaway parent just deletes it.
+        QWidget().setLayout(old)
 
     # --- Build ---
 
@@ -132,6 +199,11 @@ class TaskCard(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def _build_contents(self) -> None:
+        # The previous widgets are gone (or about to be) — forget them.
+        self._time_lbl = None
+        self._total_lbl = None
+        self._name_edit = None
+        self._desc_edit = None
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -159,16 +231,15 @@ class TaskCard(QFrame):
         tw_lay.setContentsMargins(0, 0, 0, 0)
         tw_lay.setSpacing(8)
 
-        title = QLabel(self._task.text or "(untitled)")
         weight = QFont.Weight.DemiBold if state == "running" else QFont.Weight.Medium
-        title.setFont(fonts.ui(13, weight))
-        title_color = t.S_DIM if state == "done" else t.S_FG
-        style = f"color: {title_color};"
-        if state == "done":
-            style += " text-decoration: line-through;"
-        title.setStyleSheet(style)
-        title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        tw_lay.addWidget(title)
+        title_font = fonts.ui(13, weight)
+        title_font.setStrikeOut(state == "done")
+        title = ElidedLabel(
+            self._task.text or "(untitled)",
+            font=title_font,
+            color=t.S_DIM if state == "done" else t.S_FG,
+        )
+        tw_lay.addWidget(title, 1)
 
         if state == "running":
             badge = QLabel("LIVE")
@@ -371,23 +442,22 @@ class TaskCard(QFrame):
         row.addWidget(drop_lbl)
 
         # + Image button
-        self._add_img_btn = QPushButton("+ Image")
-        self._add_img_btn.setFont(fonts.ui(11, QFont.Weight.Medium))
-        self._add_img_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._add_img_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: transparent;
-                color: {t.S_TEXT_MUTED};
-                border: 1px solid {t.S_BORDER};
-                border-radius: 6px;
-                padding: 4px 10px;
-            }}
-            QPushButton:hover {{ background: {t.S_SURFACE}; color: {t.S_FG}; }}
-        """)
-        self._add_img_btn.clicked.connect(self._on_add_image_clicked)
-        row.addWidget(self._add_img_btn)
+        add_img_btn = self._panel_button("+ Image")
+        add_img_btn.clicked.connect(self._on_add_image_clicked)
+        row.addWidget(add_img_btn)
 
         row.addStretch(1)
+
+        # Reopen (done tasks only) and Delete — available in every state, so a
+        # task no longer has to be marked done before it can be removed.
+        if self._task.done:
+            reopen_btn = self._panel_button("Reopen")
+            reopen_btn.setToolTip("Move back to the active list")
+            reopen_btn.clicked.connect(lambda: self.reopenRequested.emit(self._task.id))
+            row.addWidget(reopen_btn)
+        delete_btn = self._panel_button("Delete", hover_color=t.S_RED)
+        delete_btn.clicked.connect(lambda: self.deleteRequested.emit(self._task.id))
+        row.addWidget(delete_btn)
 
         # Total time on the right
         total_label = QLabel("Total")
@@ -397,8 +467,30 @@ class TaskCard(QFrame):
         total_value = QLabel(format_time(self._task.time_spent))
         total_value.setFont(fonts.mono(11, QFont.Weight.DemiBold))
         total_value.setStyleSheet(f"color: {t.S_FG};")
+        self._total_lbl = total_value  # kept so the timer can update it live
         row.addWidget(total_value)
         return row
+
+    def _panel_button(self, text: str, *, hover_color: str | None = None) -> QPushButton:
+        """Small outlined text button used in the expanded panel."""
+        t = self._theme
+        btn = QPushButton(text)
+        btn.setFont(fonts.ui(11, QFont.Weight.Medium))
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                color: {t.S_TEXT_MUTED};
+                border: 1px solid {t.S_BORDER};
+                border-radius: 6px;
+                padding: 4px 10px;
+            }}
+            QPushButton:hover {{
+                background: {t.S_SURFACE};
+                color: {hover_color or t.S_FG};
+            }}
+        """)
+        return btn
 
     def _kbd(self, text: str) -> QLabel:
         t = self._theme
@@ -447,11 +539,8 @@ class TaskCard(QFrame):
         thumb_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         thumb_lbl.setFixedSize(86, 80)
         if os.path.exists(path):
-            pm = QPixmap(path)
+            pm = _load_thumbnail(path)
             if not pm.isNull():
-                pm = pm.scaled(QSize(86, 80),
-                               Qt.AspectRatioMode.KeepAspectRatio,
-                               Qt.TransformationMode.SmoothTransformation)
                 thumb_lbl.setPixmap(pm)
             else:
                 thumb_lbl.setText("[err]")
@@ -494,11 +583,15 @@ class TaskCard(QFrame):
     # --- Editing handlers ---
 
     def _on_name_finished(self):
+        if self._name_edit is None:
+            return
         new = self._name_edit.text().strip()
         if new and new != self._task.text:
             self.nameEdited.emit(self._task.id, new)
 
     def _on_description_changed(self):
+        if self._desc_edit is None:
+            return
         new = self._desc_edit.toPlainText()
         if new != self._task.description:
             self.descriptionEdited.emit(self._task.id, new)

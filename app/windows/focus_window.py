@@ -173,6 +173,7 @@ class FocusWindow(QWidget):
     resumeRequested = Signal()
     doneRequested   = Signal()
     stopRequested   = Signal()
+    openRequested   = Signal()   # double-click: bring the main window back
 
     def __init__(self, *, theme: themes.Theme | None = None):
         super().__init__(
@@ -212,7 +213,7 @@ class FocusWindow(QWidget):
 
     def set_task(self, title: str) -> None:
         self._title.setText(title or "")
-        self.setToolTip(title or "")
+        self.setToolTip(f"{title or ''}\nDouble-click to open Focus".strip())
 
     def set_remaining(self, remaining_seconds: int, total_seconds: int) -> None:
         rem = max(0, int(remaining_seconds))
@@ -249,6 +250,7 @@ class FocusWindow(QWidget):
         else:
             self._dot.start()
         self.setWindowOpacity(0.85 if is_paused else 1.0)
+        self._refresh_eyebrow()
 
     # --- Internal ---
 
@@ -261,6 +263,16 @@ class FocusWindow(QWidget):
 
     def _refresh_suffix(self) -> None:
         self._chip.suffix_lbl.setText("BREAK" if self._is_break else "WORK")
+        self._refresh_eyebrow()
+
+    def _refresh_eyebrow(self) -> None:
+        if self._is_paused:
+            text = "PAUSED"
+        elif self._is_break:
+            text = "ON A BREAK"
+        else:
+            text = "FOCUSING ON"
+        self._eyebrow_lbl.setText(text)
 
     def _position_top_right(self) -> None:
         from PySide6.QtGui import QGuiApplication
@@ -288,6 +300,7 @@ class FocusWindow(QWidget):
         eyebrow_lbl.setStyleSheet(
             "color: rgba(255,255,255,0.90); letter-spacing: 1.4px;"
         )
+        self._eyebrow_lbl = eyebrow_lbl
         eyebrow.addWidget(eyebrow_lbl, 0, Qt.AlignmentFlag.AlignVCenter)
         eyebrow.addStretch(1)
         eyebrow_w = QWidget()
@@ -379,3 +392,10 @@ class FocusWindow(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         self._drag_offset = None
         super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.openRequested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
