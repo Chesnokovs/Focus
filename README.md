@@ -19,7 +19,7 @@ A Windows desktop app for staying focused on one task at a time: a task list, a 
 
 ## Install
 
-Run `FocusApp-Setup-<version>.exe` and follow the wizard.
+Download `FocusApp-Setup-<version>.exe` from the [latest release](https://github.com/Chesnokovs/Focus/releases/latest), run it and follow the wizard.
 
 - **Requirements:** 64-bit Windows 10 (version 1809 or later) or Windows 11. Nothing else needs to be installed — Python, Qt and the Microsoft C++ runtime are all inside the app.
 - **No administrator rights needed.** By default the app installs for the current user into `%LOCALAPPDATA%\Programs\Focus`. The wizard also offers "install for all users" if you have administrator rights.
